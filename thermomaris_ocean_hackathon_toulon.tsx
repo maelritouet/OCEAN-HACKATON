@@ -1603,18 +1603,25 @@ export default function App() {
               <div className="bg-white border border-sky-200/80 rounded-2xl p-5 shadow-xs">
                 <h3 className="text-sm font-bold text-slate-900 mb-1">Moyenne des anomalies calculées par l'API</h3>
                 <p className="text-xs text-slate-500 mb-4">Série dynamique agrégée par année sur la période choisie.</p>
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={sourceSeries}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="year" stroke="#475569" fontSize={12} />
-                      <YAxis domain={[-0.35, 'auto']} stroke="#475569" fontSize={12} unit=" °C" />
-                      <RechartsTooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#bae6fd', color: '#0f172a', borderRadius: '10px', fontSize: '12px' }} />
-                      <Legend />
-                      <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
-                      <Area type="monotone" dataKey="ncRawAnomaly" name="SST Anomaly" stroke="#e11d48" fill="#fda4af" fillOpacity={0.4} strokeWidth={2} />
-                    </AreaChart>
-                  </ResponsiveContainer>
+                
+                <div className="h-72 w-full relative">
+                  {sourceSeries.length === 0 ? (
+                    <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400 font-medium">
+                      Aucune donnée disponible pour cette période
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="99%" height="100%">
+                      <AreaChart data={sourceSeries} key={sourceSeries.length}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                        <XAxis dataKey="year" stroke="#475569" fontSize={12} />
+                        <YAxis domain={[-0.35, 'auto']} stroke="#475569" fontSize={12} unit=" °C" />
+                        <RechartsTooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#bae6fd', color: '#0f172a', borderRadius: '10px', fontSize: '12px' }} />
+                        <Legend />
+                        <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
+                        <Area type="monotone" dataKey="ncRawAnomaly" name="SST Anomaly" stroke="#e11d48" fill="#fda4af" fillOpacity={0.4} strokeWidth={2} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </div>
 
@@ -1626,7 +1633,24 @@ export default function App() {
                   <ResponsiveContainer width="100%" height="100%">
                     <LineChart data={timelineRecords}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis dataKey="date" stroke="#475569" fontSize={12} tickFormatter={(val) => val.substring(0, 4)} minTickGap={40} />
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="#475569" 
+                        fontSize={11} 
+                        // Si tu as moins de 100 jours (ex: vue sur 1 ou 2 ans), on affiche chaque mois. 
+                        // Si tu as 40 ans, Recharts espace intelligemment les ticks pour ne pas surcharger.
+                        interval="preserveStartEnd"
+                        minTickGap={50}
+                        tickFormatter={(val) => {
+                          // Si la valeur ressemble à une date complète (ex: "2025-06-15"), on affiche le mois/année (ex: "Juin 2025")
+                          if (val && val.length >= 7) {
+                            const [year, month] = val.split('-');
+                            const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+                            return `${months[parseInt(month, 10) - 1]} ${year}`;
+                          }
+                          return val;
+                        }}
+                      />
                       <YAxis domain={['auto', 'auto']} stroke="#475569" fontSize={12} unit="°C" />
                       <RechartsTooltip labelFormatter={(label) => `Date: ${label}`} contentStyle={{ backgroundColor: '#ffffff', borderColor: '#bae6fd', color: '#0f172a', borderRadius: '10px', fontSize: '12px' }} />
                       <Legend />
