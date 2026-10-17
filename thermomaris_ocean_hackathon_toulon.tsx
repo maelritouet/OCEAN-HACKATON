@@ -77,42 +77,6 @@ const DECODED_NC_SERIES = [
   { year: 2024, ncRawAnomaly: 0.90, ncFilteredTrend: 0.88, franceMedSst: 28.9, franceAtlSst: 22.0, franceMancheSst: 20.1 }
 ];
 
-// Filtered Gridded Water Temperature Cells around France's 3 Basins
-// (Used to render a smooth, localized SST heatmap strictly over French waters)
-const FRANCE_SST_GRID_CELLS: Array<{
-  lat: number;
-  lon: number;
-  basin: 'Méditerranée' | 'Atlantique' | 'Manche';
-  baseTemp: number;
-  anomalyMultiplier: number;
-  radiusMeters: number;
-}> = [
-  // Méditerranée (Golfe du Lion, Côte Bleue, Var, Côte d'Azur, Corse)
-  { lat: 42.55, lon: 3.35, basin: 'Méditerranée', baseTemp: 22.8, anomalyMultiplier: 4.4, radiusMeters: 55000 },
-  { lat: 43.05, lon: 3.95, basin: 'Méditerranée', baseTemp: 22.6, anomalyMultiplier: 4.5, radiusMeters: 60000 },
-  { lat: 43.10, lon: 5.05, basin: 'Méditerranée', baseTemp: 23.0, anomalyMultiplier: 4.7, radiusMeters: 60000 },
-  { lat: 42.90, lon: 6.15, basin: 'Méditerranée', baseTemp: 23.6, anomalyMultiplier: 5.1, radiusMeters: 65000 },
-  { lat: 43.45, lon: 7.15, basin: 'Méditerranée', baseTemp: 23.9, anomalyMultiplier: 5.2, radiusMeters: 60000 },
-  { lat: 42.95, lon: 8.45, basin: 'Méditerranée', baseTemp: 23.7, anomalyMultiplier: 5.0, radiusMeters: 70000 },
-  { lat: 42.15, lon: 8.55, basin: 'Méditerranée', baseTemp: 23.8, anomalyMultiplier: 4.9, radiusMeters: 65000 },
-  { lat: 42.25, lon: 9.65, basin: 'Méditerranée', baseTemp: 24.1, anomalyMultiplier: 5.1, radiusMeters: 60000 },
-
-  // Atlantique (Bretagne, Plateau Celtique, Pertuis, Golfe)
-  { lat: 48.25, lon: -4.95, basin: 'Atlantique', baseTemp: 16.5, anomalyMultiplier: 3.2, radiusMeters: 65000 },
-  { lat: 47.45, lon: -3.85, basin: 'Atlantique', baseTemp: 17.4, anomalyMultiplier: 3.5, radiusMeters: 70000 },
-  { lat: 46.65, lon: -2.65, basin: 'Atlantique', baseTemp: 18.5, anomalyMultiplier: 3.8, radiusMeters: 70000 },
-  { lat: 45.75, lon: -1.65, basin: 'Atlantique', baseTemp: 19.6, anomalyMultiplier: 4.0, radiusMeters: 65000 },
-  { lat: 44.55, lon: -1.65, basin: 'Atlantique', baseTemp: 20.4, anomalyMultiplier: 4.2, radiusMeters: 65000 },
-  { lat: 43.65, lon: -1.75, basin: 'Atlantique', baseTemp: 20.8, anomalyMultiplier: 4.3, radiusMeters: 55000 },
-
-  // Manche (Mer d'Iroise Nord, Golfe Normand-Breton, Baie de Seine, Pas-de-Calais)
-  { lat: 48.85, lon: -3.65, basin: 'Manche', baseTemp: 16.0, anomalyMultiplier: 3.0, radiusMeters: 55000 },
-  { lat: 48.85, lon: -2.25, basin: 'Manche', baseTemp: 16.6, anomalyMultiplier: 3.3, radiusMeters: 55000 },
-  { lat: 49.55, lon: -1.05, basin: 'Manche', baseTemp: 16.8, anomalyMultiplier: 3.2, radiusMeters: 60000 },
-  { lat: 49.95, lon: 0.45, basin: 'Manche', baseTemp: 17.0, anomalyMultiplier: 3.3, radiusMeters: 55000 },
-  { lat: 50.65, lon: 1.35, basin: 'Manche', baseTemp: 16.9, anomalyMultiplier: 3.1, radiusMeters: 50000 }
-];
-
 // ============================================================================
 // 2. MARINE SPECIES DATA (WELL-SPACED ACROSS MEDITERRANEAN, ATLANTIC, MANCHE)
 // ============================================================================
@@ -151,7 +115,7 @@ const SPECIES_DATA: SpeciesItem[] = [
     sst2022: 27.5,
     sst2026: 28.1,
     mortalityRate: '60% des colonies peu profondes touchées',
-    shortDesc: 'Or rouge emblématique de la Méditerranée à croissance ultra-lente (quelques millimètres par an).',
+        mortalityRate: 'Contexte documentaire à sourcer séparément du NetCDF global',
     impactDetails: 'Extrêmement sensible au réchauffement des couches d’eau intermédiaires, le corail rouge perd ses polypes nourriciers lors des vagues de chaleur. Sa croissance très lente empêche toute régénération rapide entre deux étés caniculaires.',
     narrationText: 'Sur les tombants rocheux méditerranéens, le précieux corail rouge met des décennies à grandir de quelques centimètres. Les canicules marines répétées détruisent en un été ce que la mer a mis un siècle à bâtir.',
     museumSection: 'med'
@@ -189,7 +153,7 @@ const SPECIES_DATA: SpeciesItem[] = [
     sst2022: 28.1,
     sst2026: 28.6,
     mortalityRate: '95% des Grandes Nacres décimées, éponges nécrosées',
-    shortDesc: 'Filtreurs naturels essentiels à la clarté des eaux méditerranéennes.',
+        mortalityRate: 'Contexte documentaire à sourcer séparément du NetCDF global',
     impactDetails: 'Les températures élevées activent des bactéries Vibrio et des parasites (Haplosporidium pinnae) qui déciment les éponges et la Grande Nacre. En perdant ces organismes filtreurs, toute la qualité de l’eau côtière se dégrade.',
     narrationText: 'Les éponges et la grande nacre filtrent des milliers de litres d’eau chaque jour en Méditerranée. Le réchauffement de l’eau favorise des parasites foudroyants qui les font disparaître à un rythme alarmant.',
     museumSection: 'med'
@@ -645,7 +609,7 @@ const SPECIES_GALLERY_IMAGES: Record<string, SpeciesGallery> = {
 };
 
 // ============================================================================
-// 3. COPERNICUS MARINE TIME-SERIES DATASET (2015 - 2026) + .NC ANOMALY
+// 3. DEMO TIMELINE CONTEXT (regional values are illustrative, not .nc data)
 // ============================================================================
 const COPERNICUS_YEARS = [
   { year: 2015, label: 'Été 2015', ncGlobalAnom: 0.36, ncTrend: 0.31, medSst: 23.4, medAnomaly: 0.8, atlSst: 18.2, atlAnomaly: 0.5, mancheSst: 16.4, mancheAnomaly: 0.4, mhwDaysMed: 18, mhwCategory: 'Modérée', highlight: 'Référence satellite CMEMS' },
@@ -657,9 +621,7 @@ const COPERNICUS_YEARS = [
   { year: 2021, label: 'Été 2021', ncGlobalAnom: 0.35, ncTrend: 0.39, medSst: 25.9, medAnomaly: 2.7, atlSst: 19.9, atlAnomaly: 1.8, mancheSst: 18.2, mancheAnomaly: 1.7, mhwDaysMed: 64, mhwCategory: 'Sévère', highlight: 'Pontes de tortues sur la côte méditerranéenne' },
   { year: 2022, label: 'Été 2022 🔥', ncGlobalAnom: 0.46, ncTrend: 0.45, medSst: 28.4, medAnomaly: 4.3, atlSst: 21.3, atlAnomaly: 2.9, mancheSst: 19.5, mancheAnomaly: 2.6, mhwDaysMed: 96, mhwCategory: 'Extrême (Cat. IV)', highlight: 'Canicule marine historique en Méditerranée (+4.3°C)' },
   { year: 2023, label: 'Été 2023 🔥', ncGlobalAnom: 0.86, ncTrend: 0.78, medSst: 28.7, medAnomaly: 4.5, atlSst: 21.8, atlAnomaly: 3.3, mancheSst: 19.8, mancheAnomaly: 2.8, mhwDaysMed: 104, mhwCategory: 'Extrême (Cat. IV)', highlight: 'Record C3S .nc (+0.86 K global / +4.5°C Med)' },
-  { year: 2024, label: 'Été 2024 🔥', ncGlobalAnom: 0.90, ncTrend: 0.88, medSst: 28.9, medAnomaly: 4.6, atlSst: 21.9, atlAnomaly: 3.3, mancheSst: 19.9, mancheAnomaly: 2.9, mhwDaysMed: 108, mhwCategory: 'Extrême (Cat. IV)', highlight: 'Pic du fichier .nc Copernicus (+0.90 K global)' },
-  { year: 2025, label: 'Été 2025 🔥', ncGlobalAnom: 0.92, ncTrend: 0.90, medSst: 29.0, medAnomaly: 4.7, atlSst: 22.1, atlAnomaly: 3.5, mancheSst: 20.1, mancheAnomaly: 3.0, mhwDaysMed: 112, mhwCategory: 'Extrême (Cat. IV)', highlight: 'Tropicalisation accélérée du bassin Méditerranéen' },
-  { year: 2026, label: 'Été 2026 (Actuel)', ncGlobalAnom: 0.95, ncTrend: 0.93, medSst: 29.2, medAnomaly: 4.8, atlSst: 22.3, atlAnomaly: 3.6, mancheSst: 20.4, mancheAnomaly: 3.2, mhwDaysMed: 119, mhwCategory: 'Extrême (Cat. IV)', highlight: 'Données Copernicus NRT — Alerte Rouge Biodiversité' }
+  { year: 2024, label: 'Été 2024 🔥', ncGlobalAnom: 0.90, ncTrend: 0.88, medSst: 28.9, medAnomaly: 4.6, atlSst: 21.9, atlAnomaly: 3.3, mancheSst: 19.9, mancheAnomaly: 2.9, mhwDaysMed: 108, mhwCategory: 'Extrême (Cat. IV)', highlight: 'Pic de la série globale du fichier (+0.90 K)' }
 ];
 
 const MUSEUM_SECTIONS = [
@@ -836,6 +798,9 @@ function RealWorldMap({
   showSatelliteRaster,
   heatFactor,
   currentYearData,
+  liveCells,
+  mapDate,
+  isMapLoading,
   tileStyle
 }: {
   species: SpeciesItem[];
@@ -848,6 +813,9 @@ function RealWorldMap({
   showSatelliteRaster: boolean;
   heatFactor: number;
   currentYearData: (typeof COPERNICUS_YEARS)[number];
+  liveCells: Array<{ lat: number; lon: number; sst: number }>;
+  mapDate: string;
+  isMapLoading: boolean;
   tileStyle: 'voyager' | 'osm';
 }) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -899,7 +867,8 @@ function RealWorldMap({
       zoom: 6,
       minZoom: 4,
       maxZoom: 13,
-      zoomControl: false
+      zoomControl: false,
+      preferCanvas: true
     });
 
     L.control.zoom({ position: 'bottomright' }).addTo(map);
@@ -913,6 +882,7 @@ function RealWorldMap({
       maxZoom: 13,
       attribution: '&copy; OpenStreetMap France &copy; Esri World Ocean &copy; Copernicus C3S'
     }).addTo(map);
+    map.fitBounds([[41.0, -6.5], [51.5, 10.5]], { padding: [18, 18] });
 
     thermalLayerRef.current = L.layerGroup().addTo(map);
     markersLayerRef.current = L.layerGroup().addTo(map);
@@ -1000,20 +970,16 @@ function RealWorldMap({
     thermalLayer.clearLayers();
     if (!showThermalOverlay) return;
 
-    // Filter SST grid cells to France or the currently selected French maritime basin
-    const cellsToRender = FRANCE_SST_GRID_CELLS.filter(
-      (cell) => selectedBasin === 'Tous' || cell.basin === selectedBasin
-    );
+    // Render only cells returned by the live Copernicus NRT map endpoint.
+    const cellsToRender = liveCells;
 
     cellsToRender.forEach((cell) => {
-      // Compute local SST & Anomaly from the decoded .nc global anomaly + regional amplification
-      const localAnomaly = +(currentYearData.ncGlobalAnom * cell.anomalyMultiplier).toFixed(1);
-      const localSst = +(cell.baseTemp + localAnomaly).toFixed(1);
+      const localSst = +cell.sst.toFixed(1);
       const color = getSstColor(localSst);
 
       // Soft outer thermal diffusion halo
       L.circle([cell.lat, cell.lon], {
-        radius: cell.radiusMeters * 1.35,
+        radius: 4200,
         stroke: false,
         fillColor: color,
         fillOpacity: 0.18 + 0.14 * heatFactor,
@@ -1022,7 +988,7 @@ function RealWorldMap({
 
       // Inner SST core cell with interactive tooltip showing the exact .nc-derived water temp
       const coreCircle = L.circle([cell.lat, cell.lon], {
-        radius: cell.radiusMeters * 0.78,
+        radius: 3000,
         stroke: true,
         color: color,
         weight: 1,
@@ -1033,14 +999,14 @@ function RealWorldMap({
 
       coreCircle.bindTooltip(
         `<div style="font-family: sans-serif; font-size: 11px; line-height: 1.35;">
-          <strong style="color: #0f172a;">Cellule Copernicus SST (${cell.basin})</strong><br/>
+          <strong style="color: #0f172a;">Cellule Copernicus NRT</strong><br/>
           Température eau : <b style="color: ${color};">${localSst}°C</b><br/>
-          Anomalie locale : <b>+${localAnomaly}°C</b> <span style="color:#64748b;">(Global .nc: +${currentYearData.ncGlobalAnom} K)</span>
+          Donnée opérationnelle du ${mapDate}
         </div>`,
         { sticky: true, direction: 'top' }
       );
     });
-  }, [leafletReady, showThermalOverlay, heatFactor, currentYearData, selectedBasin]);
+  }, [leafletReady, showThermalOverlay, heatFactor, liveCells, mapDate]);
 
   // 8. Render Well-Spaced Species Badges on the Real World Map
   useEffect(() => {
@@ -1129,6 +1095,11 @@ function RealWorldMap({
           Chargement de la carte mondiale OpenStreetMap…
         </div>
       )}
+      {leafletReady && isMapLoading && (
+        <div className="absolute top-4 right-4 z-20 rounded-xl bg-white/95 border border-sky-200 px-3 py-2 text-xs font-semibold text-sky-900 shadow-lg">
+          Chargement SST Copernicus du {mapDate}…
+        </div>
+      )}
     </div>
   );
 }
@@ -1146,7 +1117,6 @@ export default function App() {
   // Filters & Map State
   const [selectedBasin, setSelectedBasin] = useState('Tous');
   const [selectedTrend, setSelectedTrend] = useState('Tous');
-  const [yearIndex, setYearIndex] = useState(9); // Default 2024 (latest year in uploaded .nc file, or slide up to 2026)
   const [showThermalOverlay, setShowThermalOverlay] = useState(true);
   const [showSatelliteRaster, setShowSatelliteRaster] = useState(false);
   const [showCopernicusWmsInfo, setShowCopernicusWmsInfo] = useState(false);
@@ -1198,7 +1168,90 @@ export default function App() {
     focusedBasin: null
   });
 
-  const currentYearData = COPERNICUS_YEARS[yearIndex];
+  const [sourceSeries, setSourceSeries] = useState<Array<{
+    year: number;
+    ncRawAnomaly: number | null;
+    ncFilteredTrend: number | null;
+  }>>([]);
+  const [livePipeline, setLivePipeline] = useState<{
+    source?: { provider?: string; products?: Array<{ datasetId: string; period: [string, string] }> };
+    coverage?: { start?: string; end?: string; recordCount?: number };
+    method?: { baselineStart?: string; baselineEnd?: string; percentile?: number };
+    events?: Array<{ id: string; start: string; end: string; durationDays: number; category: string }>;
+    records?: Array<{ date: string; sst: number; anomaly: number | null }>;
+  } | null>(null);
+  const [liveCells, setLiveCells] = useState<Array<{ lat: number; lon: number; sst: number }>>([]);
+  const [selectedRecordIndex, setSelectedRecordIndex] = useState(-1);
+  const [isMapLoading, setIsMapLoading] = useState(false);
+  const latestLiveRecord = livePipeline?.records?.[livePipeline.records.length - 1];
+  const selectedLiveRecord = livePipeline?.records?.[selectedRecordIndex] ?? latestLiveRecord;
+  const selectedMapDate = selectedLiveRecord?.date ?? '';
+  const currentYearData = useMemo(() => {
+    const liveYear = selectedLiveRecord ? Number(selectedLiveRecord.date.slice(0, 4)) : null;
+    const historical = COPERNICUS_YEARS.find((item) => item.year === liveYear) ?? COPERNICUS_YEARS[COPERNICUS_YEARS.length - 1];
+    if (!selectedLiveRecord) return historical;
+    return {
+      ...historical,
+      year: liveYear,
+      label: `Copernicus : ${selectedLiveRecord.date}`,
+      ncGlobalAnom: selectedLiveRecord.anomaly ?? historical.ncGlobalAnom,
+      medSst: selectedLiveRecord.sst,
+      medAnomaly: selectedLiveRecord.anomaly ?? historical.medAnomaly,
+      highlight: `Donnée Copernicus au ${selectedLiveRecord.date}`,
+    };
+  }, [selectedLiveRecord]);
+
+  useEffect(() => {
+    fetch('/api/mhw?lat=43&lon=6&radius=0.05')
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error('Live pipeline unavailable'))))
+      .then((payload: typeof livePipeline) => {
+        setLivePipeline(payload);
+        if (!payload?.records) return;
+        setSelectedRecordIndex(payload.records.length - 1);
+        const annual = new Map<number, { sum: number; count: number }>();
+        payload.records.forEach((record) => {
+          if (record.anomaly === null) return;
+          const year = Number(record.date.slice(0, 4));
+          const current = annual.get(year) ?? { sum: 0, count: 0 };
+          annual.set(year, { sum: current.sum + record.anomaly, count: current.count + 1 });
+        });
+        setSourceSeries(Array.from(annual.entries()).map(([year, values]) => ({
+          year,
+          ncRawAnomaly: +(values.sum / values.count).toFixed(3),
+          ncFilteredTrend: null
+        })));
+      })
+      .catch(() => {
+        setLivePipeline(null);
+        setSourceSeries([]);
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!selectedMapDate) return;
+    const controller = new AbortController();
+    const requestDate = selectedMapDate;
+    setLiveCells([]);
+    setIsMapLoading(true);
+    const timer = window.setTimeout(() => {
+      fetch(`/api/map?min_lon=-6.5&max_lon=10.5&min_lat=41&max_lat=51.5&day=${requestDate}`, { signal: controller.signal })
+        .then((response) => (response.ok ? response.json() : Promise.reject(new Error('Live map unavailable'))))
+        .then((payload: { source: { date: string }; cells: Array<{ lat: number; lon: number; sst: number }> }) => {
+          if (payload.source.date !== requestDate) throw new Error('Stale map response');
+          setLiveCells(payload.cells);
+        })
+        .catch((error: Error) => {
+          if (error.name !== 'AbortError' && error.message !== 'Stale map response') setLiveCells([]);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setIsMapLoading(false);
+        });
+    }, 250);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [selectedMapDate]);
 
   // Initialize Underwater Audio Engine
   useEffect(() => {
@@ -1369,7 +1422,7 @@ export default function App() {
       'Seuil_Thermique_Critique',
       'SST_2015_C',
       'SST_Canicule_2022_C',
-      'SST_Copernicus_2026_C',
+      'SST_Illustrative_2026_C',
       'Anomalie_Globale_NC_2024_K',
       'Source_Fichier_NetCDF'
     ];
@@ -1388,7 +1441,7 @@ export default function App() {
         sp.sst2022,
         sp.sst2026,
         '+0.90',
-        NC_FILE_METADATA.source
+        'Illustratif : non dérivé de la grille NetCDF'
       ].join(',');
     });
     return [headers.join(','), ...rows].join('\n');
@@ -1399,8 +1452,12 @@ export default function App() {
       project: 'ThermoMaris - Ocean Hackathon',
       netcdfFileMetadata: NC_FILE_METADATA,
       generatedAt: new Date().toISOString(),
-      decodedNetcdfTimeSeries1982_2024: DECODED_NC_SERIES,
-      franceFilteredSstGridCells: FRANCE_SST_GRID_CELLS,
+      decodedNetcdfTimeSeries1982_2024: sourceSeries,
+      liveCopernicusPipeline: livePipeline,
+      liveRegionalContext: {
+        note: 'Cellules SST opérationnelles fournies par le backend Copernicus NRT.',
+        gridCells: liveCells,
+      },
       speciesIndicators: SPECIES_DATA.map((sp) => ({
         id: sp.id,
         name: sp.name,
@@ -1409,11 +1466,11 @@ export default function App() {
         coordinates: { lat: sp.coords[0], lon: sp.coords[1] },
         responseToMarineHeatwave: sp.trend === 'decline' ? '- Disparaît / Déclin' : '+ Apparaît / Prolifère',
         criticalThreshold: sp.criticalThreshold,
-        telemetry: {
+        illustrativeTelemetry: {
           sst2015: sp.baseSst2015,
           sst2022: sp.sst2022,
           sst2026: sp.sst2026,
-          deltaAnomaly: Number((sp.sst2026 - sp.baseSst2015).toFixed(2))
+          note: 'Valeurs contextuelles à sourcer séparément; non issues du NetCDF global.'
         }
       }))
     };
@@ -1442,6 +1499,9 @@ export default function App() {
 
   const activeFiltersCount =
     (selectedBasin !== 'Tous' ? 1 : 0) + (selectedTrend !== 'Tous' ? 1 : 0);
+  const timelineRecords = livePipeline?.records ?? [];
+  const timelineIndex = selectedRecordIndex < 0 ? Math.max(0, timelineRecords.length - 1) : selectedRecordIndex;
+  const timelineRecord = timelineRecords[timelineIndex];
 
   return (
     <div className="h-screen w-screen bg-sky-50 text-slate-800 font-sans selection:bg-sky-500 selection:text-white flex flex-col overflow-hidden">
@@ -1485,7 +1545,7 @@ export default function App() {
               }`}
             >
               <Compass className="w-4 h-4" />
-              <span>1. Carte Citoyenne</span>
+              <span>1. Découvrir</span>
             </button>
 
             <button
@@ -1501,7 +1561,7 @@ export default function App() {
               }`}
             >
               <Headphones className="w-4 h-4" />
-              <span>2. Guide Musée / Fresque</span>
+              <span>2. Explorer</span>
             </button>
 
             <button
@@ -1517,7 +1577,7 @@ export default function App() {
               }`}
             >
               <Database className="w-4 h-4" />
-              <span>3. Portail Data (.nc) & Export</span>
+              <span>3. Expert</span>
             </button>
           </nav>
 
@@ -1578,6 +1638,9 @@ export default function App() {
               showSatelliteRaster={showSatelliteRaster}
               heatFactor={heatFactor}
               currentYearData={currentYearData}
+                liveCells={liveCells}
+                mapDate={selectedMapDate}
+                isMapLoading={isMapLoading}
               tileStyle={tileStyle}
             />
 
@@ -1725,7 +1788,7 @@ export default function App() {
                         }`}
                       >
                         <Thermometer className="w-4 h-4 text-rose-600" />
-                        <span>Cellules SST France (.nc) : {showThermalOverlay ? 'ON' : 'OFF'}</span>
+                          <span>Cellules Copernicus NRT : {showThermalOverlay ? 'ON' : 'OFF'}</span>
                       </button>
                       <button
                         onClick={() => setShowCopernicusWmsInfo(!showCopernicusWmsInfo)}
@@ -1889,7 +1952,7 @@ export default function App() {
 
               {/* SST Thermal Scale Legend */}
               <div className="hidden sm:flex items-center gap-1.5 border-l border-sky-200 pl-3">
-                <span className="text-slate-500 font-semibold">SST Eau :</span>
+                    <span className="text-slate-500 font-semibold">SST raster :</span>
                 <span className="text-[10px] font-mono text-sky-700">16°C</span>
                 <div className="w-24 h-2.5 rounded-full bg-gradient-to-r from-sky-400 via-amber-400 to-rose-700 border border-slate-200" />
                 <span className="text-[10px] font-mono text-rose-700 font-bold">29°C+</span>
@@ -2152,17 +2215,18 @@ export default function App() {
                 <div className="flex items-center gap-1.5">
                   <Thermometer className="w-4 h-4 text-rose-600" />
                   <span className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                    Timeline Copernicus .NC (2015–2026)
+                    Timeline SST quotidienne Copernicus (REP + NRT)
                   </span>
                 </div>
                 <span className="text-[11px] px-2 py-0.5 rounded-full bg-rose-100 border border-rose-200 text-rose-800 font-bold">
-                  {currentYearData.mhwCategory} • {currentYearData.mhwDaysMed}j/an
+                  {timelineRecord?.date ?? 'Chargement…'} • {timelineRecord ? `${timelineRecord.sst.toFixed(1)}°C` : '—'}
                 </span>
               </div>
 
               <div className="flex-1 flex items-center gap-2.5">
                 <button
-                  onClick={() => setYearIndex((prev) => (prev > 0 ? prev - 1 : COPERNICUS_YEARS.length - 1))}
+                  disabled={!timelineRecords.length}
+                  onClick={() => setSelectedRecordIndex(Math.max(0, timelineIndex - 1))}
                   className="p-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-slate-700"
                   title="Année précédente"
                 >
@@ -2173,28 +2237,21 @@ export default function App() {
                   <input
                     type="range"
                     min={0}
-                    max={COPERNICUS_YEARS.length - 1}
-                    value={yearIndex}
-                    onChange={(e) => setYearIndex(Number(e.target.value))}
+                    max={Math.max(0, timelineRecords.length - 1)}
+                    value={timelineIndex}
+                    onChange={(e) => setSelectedRecordIndex(Number(e.target.value))}
                     className="w-full accent-rose-600 cursor-pointer h-1.5 bg-sky-200 rounded-lg block"
                   />
                   <div className="flex justify-between text-[10px] text-slate-500 font-semibold mt-1 px-0.5">
-                    {COPERNICUS_YEARS.map((y, idx) => (
-                      <button
-                        key={y.year}
-                        onClick={() => setYearIndex(idx)}
-                        className={`hover:text-sky-900 transition-colors ${
-                          idx === yearIndex ? 'text-rose-600 font-extrabold underline' : ''
-                        } ${y.year === 2022 || y.year === 2023 || y.year === 2024 ? 'text-orange-600' : ''}`}
-                      >
-                        {y.year}
-                      </button>
-                    ))}
+                    <span>{timelineRecords[0]?.date ?? 'REP'}</span>
+                    <span className="text-rose-600 font-extrabold">{timelineRecord?.date ?? 'NRT'}</span>
+                    <span>{timelineRecords[timelineRecords.length - 1]?.date ?? 'Aujourd’hui'}</span>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => setYearIndex((prev) => (prev < COPERNICUS_YEARS.length - 1 ? prev + 1 : 0))}
+                  disabled={!timelineRecords.length}
+                  onClick={() => setSelectedRecordIndex(Math.min(timelineRecords.length - 1, timelineIndex + 1))}
                   className="p-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 text-slate-700"
                   title="Année suivante"
                 >
@@ -2273,9 +2330,9 @@ export default function App() {
                 <div className="text-[11px] text-slate-500 mt-1">Se réchauffe ~3.5x plus vite que l’océan global</div>
               </div>
               <div className="bg-white border border-sky-200/80 p-4 rounded-xl shadow-2xs">
-                <div className="text-xs font-semibold text-slate-500">Cellules SST France Filtrées</div>
-                <div className="text-2xl font-black text-sky-700 mt-1">{FRANCE_SST_GRID_CELLS.length} zones</div>
-                <div className="text-[11px] text-slate-500 mt-1">Méditerranée, Atlantique & Manche</div>
+                <div className="text-xs font-semibold text-slate-500">Cellules SST Copernicus NRT</div>
+                <div className="text-2xl font-black text-sky-700 mt-1">{liveCells.length} zones</div>
+                <div className="text-[11px] text-slate-500 mt-1">Périmètre réel de la carte</div>
               </div>
               <div className="bg-white border border-sky-200/80 p-4 rounded-xl shadow-2xs">
                 <div className="text-xs font-semibold text-slate-500">Source NetCDF4 / HDF5</div>
@@ -2286,6 +2343,13 @@ export default function App() {
                   <CheckCircle2 className="w-3.5 h-3.5" /> 516 pas mensuels décodés
                 </div>
               </div>
+              <div className="bg-white border border-emerald-200/80 p-4 rounded-xl shadow-2xs">
+                <div className="text-xs font-semibold text-slate-500">Pipeline Copernicus temps quasi-réel</div>
+                <div className="text-2xl font-black text-emerald-700 mt-1">{livePipeline?.events?.length ?? '—'} événements</div>
+                <div className="text-[11px] text-slate-500 mt-1">
+                  {livePipeline?.method ? `Hobday, ${livePipeline.method.percentile}e percentile, ${livePipeline.method.baselineStart}–${livePipeline.method.baselineEnd}` : 'Générez public/data/copernicus_pipeline.json'}
+                </div>
+              </div>
             </div>
 
             {/* Charts Grid */}
@@ -2293,14 +2357,14 @@ export default function App() {
               {/* Chart 1: Direct plot of the user's .nc file variables */}
               <div className="bg-white border border-sky-200/80 rounded-2xl p-5 shadow-xs">
                 <h3 className="text-sm font-bold text-slate-900 mb-1">
-                  Série Temporelle extraite de votre fichier .NC (1982–2024)
+                  Série temporelle Copernicus REP + NRT (1982–aujourd’hui)
                 </h3>
                 <p className="text-xs text-slate-500 mb-4">
-                  Variables <code className="text-rose-600">sst_anomaly</code> et <code className="text-indigo-600">sst_anomaly_filtered</code> (Unité : K / °C, réf. 1991–2020)
+                  Moyenne annuelle des anomalies calculées par le backend, avec seuil Hobday basé sur 1991–2020
                 </p>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={DECODED_NC_SERIES}>
+                    <AreaChart data={sourceSeries}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                       <XAxis dataKey="year" stroke="#475569" fontSize={12} />
                       <YAxis domain={[-0.35, 1.05]} stroke="#475569" fontSize={12} unit=" K" />
@@ -2340,10 +2404,10 @@ export default function App() {
               {/* Chart 2: French Basins SST Evolution */}
               <div className="bg-white border border-sky-200/80 rounded-2xl p-5 shadow-xs">
                 <h3 className="text-sm font-bold text-slate-900 mb-1">
-                  Températures de Surface Filtrées par Façade Française (SST °C)
+                  Contexte régional illustratif (SST °C)
                 </h3>
                 <p className="text-xs text-slate-500 mb-4">
-                  Projection régionale sur la Méditerranée, l’Atlantique et la Manche avec seuil de nécrose à 25°C
+                  Valeurs de contexte non dérivées du fichier NetCDF global. À remplacer par une série régionale sourcée.
                 </p>
                 <div className="h-72">
                   <ResponsiveContainer width="100%" height="100%">
@@ -2417,7 +2481,7 @@ export default function App() {
                       <th className="py-3 px-4">Réponse Canicule</th>
                       <th className="py-3 px-4">SST 2015</th>
                       <th className="py-3 px-4">SST 2022</th>
-                      <th className="py-3 px-4">SST 2026</th>
+                      <th className="py-3 px-4">SST illustrative 2026</th>
                       <th className="py-3 px-4">Seuil Critique</th>
                     </tr>
                   </thead>
