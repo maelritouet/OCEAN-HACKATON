@@ -516,8 +516,8 @@ function RealWorldMap({
   tileStyle: 'voyager' | 'osm';
   colorMode: 'daily' | 'average';
   livePipeline: any;
-  mapDataType: 'sst' | 'mhw';
-  dynamicTelemetry: any;
+  mapDataType: 'sst' | 'mhw' | 'impact';
+    dynamicTelemetry: any;
   apiStartDate: string;
 }) {
 
@@ -764,83 +764,86 @@ function RealWorldMap({
     });
   }, [leafletReady, showThermalOverlay, heatFactor, liveCells, mapDate, colorMode, mapDataType, dynamicTelemetry, livePipeline, apiStartDate]);
 
-  useEffect(() => {
-    const map = mapInstanceRef.current;
-    const markersLayer = markersLayerRef.current;
-    if (!map || !markersLayer || !window.L) return;
-    const L = window.L;
+useEffect(() => {
+    const map = mapInstanceRef.current;
+    const markersLayer = markersLayerRef.current;
+    if (!map || !markersLayer || !window.L) return;
+    const L = window.L;
 
-    markersLayer.clearLayers();
+    markersLayer.clearLayers();
 
-    species.forEach((sp) => {
-      const isSelected = selectedSpecies?.id === sp.id;
-      const isDecline = sp.trend === 'decline';
-      const badgeColor = isDecline ? '#e11d48' : '#10b981';
-      const ringColor = isDecline ? 'rgba(225, 29, 72, 0.28)' : 'rgba(16, 185, 129, 0.28)';
-      const borderColor = isDecline ? '#fecdd3' : '#a7f3d0';
-      const sign = isDecline ? '−' : '+';
+    species.forEach((sp) => {
+      const isSelected = selectedSpecies?.id === sp.id;
+      const isDecline = sp.trend === 'decline';
+      const badgeColor = isDecline ? '#e11d48' : '#10b981';
+      const ringColor = isDecline ? 'rgba(225, 29, 72, 0.28)' : 'rgba(16, 185, 129, 0.28)';
+      const borderColor = isDecline ? '#fecdd3' : '#a7f3d0';
+      const sign = isDecline ? '−' : '+';
 
-      const html = `
-        <div style="
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          transform: translate(-50%, -50%);
-          cursor: pointer;
-          user-select: none;
-        ">
-          <div style="
-            position: relative;
-            width: ${isSelected ? '38px' : '30px'};
-            height: ${isSelected ? '38px' : '30px'};
-            border-radius: 9999px;
-            background: ${badgeColor};
-            border: 3px solid #ffffff;
-            box-shadow: 0 0 0 ${isSelected ? '8px' : '5px'} ${ringColor}, 0 6px 14px rgba(15, 23, 42, 0.25);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: #ffffff;
-            font-weight: 900;
-            font-size: ${isSelected ? '18px' : '15px'};
-            line-height: 1;
-            transition: all 0.2s ease;
-          ">
-            ${sign}
-          </div>
-          <div style="
-            margin-top: 5px;
-            padding: 2px 8px;
-            border-radius: 9999px;
-            background: ${isSelected ? '#0f172a' : 'rgba(255, 255, 255, 0.96)'};
-            color: ${isSelected ? '#ffffff' : '#0f172a'};
-            border: 1.5px solid ${isSelected ? badgeColor : borderColor};
-            font-size: 11px;
-            font-weight: 700;
-            white-space: nowrap;
-            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
-          ">
-            ${sp.name}
-          </div>
-        </div>
-      `;
+      // HTML personnalisé avec le rond coloré, le signe et le nom de l'espèce en dessous
+      const html = `
+        <div style="
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          transform: translate(-50%, -50%);
+          cursor: pointer;
+          user-select: none;
+        ">
+          <div style="
+            position: relative;
+            width: ${isSelected ? '38px' : '30px'};
+            height: ${isSelected ? '38px' : '30px'};
+            border-radius: 9999px;
+            background: ${badgeColor};
+            border: 3px solid #ffffff;
+            box-shadow: 0 0 0 ${isSelected ? '8px' : '5px'} ${ringColor}, 0 6px 14px rgba(15, 23, 42, 0.25);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #ffffff;
+            font-weight: 900;
+            font-size: ${isSelected ? '18px' : '15px'};
+            line-height: 1;
+            transition: all 0.2s ease;
+          ">
+            ${sign}
+          </div>
+          <div style="
+            margin-top: 5px;
+            padding: 2px 8px;
+            border-radius: 9999px;
+            background: ${isSelected ? '#0f172a' : 'rgba(255, 255, 255, 0.96)'};
+            color: ${isSelected ? '#ffffff' : '#0f172a'};
+            border: 1.5px solid ${isSelected ? badgeColor : borderColor};
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+            box-shadow: 0 2px 8px rgba(15, 23, 42, 0.14);
+          ">
+            ${sp.name}
+          </div>
+        </div>
+      `;
 
-      const icon = L.divIcon({
-        className: 'custom-species-leaflet-pin',
-        html,
-        iconSize: [0, 0],
-        iconAnchor: [0, 0]
-      });
+      const icon = L.divIcon({
+        className: 'custom-species-leaflet-pin',
+        html,
+        iconSize: [0, 0],
+        iconAnchor: [0, 0]
+      });
 
-      const marker = L.marker(sp.coords, { icon }).addTo(markersLayer);
-      marker.on('click', (e: any) => {
-        if (e.originalEvent) {
-          e.originalEvent.stopPropagation();
-        }
-        onSelectSpecies(sp);
-      });
-    });
-  }, [leafletReady, species, selectedSpecies]);
+      const marker = L.marker(sp.coords, { icon }).addTo(markersLayer);
+      marker.setZIndexOffset(1000); // Force le marqueur au premier plan
+
+      marker.on('click', (e: any) => {
+        if (e.originalEvent) {
+          e.originalEvent.stopPropagation();
+        }
+        onSelectSpecies(sp); // C'est cette fonction qui déclenche l'ouverture de la carte sur le côté !
+      });
+    });
+  }, [leafletReady, species, selectedSpecies]);
 
   return (
     <div className="relative w-full h-full">
@@ -885,7 +888,7 @@ export default function App() {
   const [showSatelliteRaster, setShowSatelliteRaster] = useState(false);
   const [showCopernicusWmsInfo, setShowCopernicusWmsInfo] = useState(false);
   const [colorMode, setColorMode] = useState<'daily' | 'average'>('daily');
-  const [mapDataType, setMapDataType] = useState<'sst' | 'mhw'>('sst');
+  const [mapDataType, setMapDataType] = useState<'sst' | 'mhw' | 'impact'>('sst');
   const [tileStyle, setTileStyle] = useState<'voyager' | 'osm'>('voyager');
 
   // Selected Species Card State
@@ -1094,24 +1097,30 @@ export default function App() {
     }
   };
 
-  const filteredSpecies = useMemo(() => {
-    return SPECIES_DATA.filter((sp) => {
-      const matchBasin = selectedBasin === 'Tous' || sp.basin === selectedBasin;
-      const matchTrend =
-        selectedTrend === 'Tous' ||
-        (selectedTrend === 'decline' && sp.trend === 'decline') ||
-        (selectedTrend === 'proliferate' && sp.trend === 'proliferate');
-      return matchBasin && matchTrend;
-    });
-  }, [selectedBasin, selectedTrend]);
+const filteredSpecies = useMemo(() => {
+    // Si on n'est PAS en Mode Impact, on ne renvoie aucun point (carte épurée)
+    if (mapDataType !== 'impact') {
+      return []; 
+    }
 
-  const handleSelectSpecies = (sp: SpeciesItem) => {
-    setSelectedSpecies(sp);
-    if (activeMode === 'museum' && voiceOverOn) {
-      speakText(`${sp.name}. ${sp.narrationText}`);
-    }
-  };
+    // En Mode Impact, on affiche les espèces selon les filtres de façade et de tendance (Tous, Déclin, Prolifération)
+    return SPECIES_DATA.filter((sp) => {
+      const matchBasin = selectedBasin === 'Tous' || sp.basin === selectedBasin;
+      const matchTrend =
+        selectedTrend === 'Tous' ||
+        (selectedTrend === 'decline' && sp.trend === 'decline') ||
+        (selectedTrend === 'proliferate' && sp.trend === 'proliferate');
+      
+      return matchBasin && matchTrend;
+    });
+  }, [selectedBasin, selectedTrend, mapDataType]);
 
+  const handleSelectSpecies = (sp: SpeciesItem) => {
+    setSelectedSpecies(sp);
+    if (activeMode === 'museum' && voiceOverOn) {
+      speakText(`${sp.name}. ${sp.narrationText}`);
+    }
+  };
   const handleBasinFocus = (basin: string) => {
     setSelectedBasin(basin);
     if (basin === 'Méditerranée') {
@@ -1591,31 +1600,32 @@ export default function App() {
                       <button onClick={() => setShowCopernicusWmsInfo(!showCopernicusWmsInfo)} className="ml-1.5 p-2 rounded-xl bg-sky-50 border border-sky-200 text-sky-700 hover:bg-sky-100"><Layers className="w-4 h-4" /></button>
                     </div>
 
-                  {showThermalOverlay && (
-                        <>
-                          {/* NOUVEL INTERRUPTEUR : SST vs MHW Hobday */}
-                          <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-[11px] font-bold shadow-inner">
-                            <button
-                              onClick={() => setMapDataType('sst')}
-                              className={`flex-1 py-1.5 rounded-lg transition-all ${mapDataType === 'sst' ? 'bg-white text-sky-700 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
-                            >
-                              🌡️ SST Brute
-                            </button>
-                            <button
-                              onClick={() => setMapDataType('mhw')}
-                              className={`flex-1 py-1.5 rounded-lg transition-all ${mapDataType === 'mhw' ? 'bg-rose-600 text-white shadow-sm shadow-rose-500/30' : 'text-slate-500 hover:text-rose-600'}`}
-                            >
-                              🔥 Mode Canicule
-                            </button>
-                          </div>
-
-                          {/* Boutons Précis / Moyenne existants */}
-                          <div className="flex items-center bg-sky-50 p-1 rounded-xl border border-sky-200 text-[11px] font-semibold">
-                            <button onClick={() => setColorMode('daily')} className={`flex-1 py-1 rounded-lg transition-all ${colorMode === 'daily' ? 'bg-sky-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>Précis (Jour J)</button>
-                            <button onClick={() => setColorMode('average')} className={`flex-1 py-1 rounded-lg transition-all ${colorMode === 'average' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}>Moyenne période</button>
-                          </div>
-                        </>
-                      )}
+{showThermalOverlay && (
+                      <div className="flex flex-col gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-[11px] font-bold shadow-inner">
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setMapDataType('sst')}
+                            className={`flex-1 py-1.5 rounded-lg transition-all ${mapDataType === 'sst' ? 'bg-white text-sky-700 shadow-sm border border-slate-200' : 'text-slate-500 hover:text-slate-800'}`}
+                          >
+                            🌡️ SST Brute
+                          </button>
+                          <button
+                            onClick={() => setMapDataType('mhw')}
+                            className={`flex-1 py-1.5 rounded-lg transition-all ${mapDataType === 'mhw' ? 'bg-rose-600 text-white shadow-sm shadow-rose-500/30' : 'text-slate-500 hover:text-rose-600'}`}
+                          >
+                            🔥 Canicule
+                          </button>
+                        </div>
+                        
+                        {/* BOUTON IMPACT BIOLOGIQUE */}
+                        <button
+                          onClick={() => setMapDataType(mapDataType === 'impact' ? 'sst' : 'impact')}
+                          className={`w-full py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${mapDataType === 'impact' ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md' : 'bg-white text-purple-700 hover:bg-purple-50 border border-purple-200'}`}
+                        >
+                          <span>🐙 Mode Impact Biologique</span>
+                        </button>
+                      </div>
+                    )}
 
                     <button onClick={() => setShowSatelliteRaster(!showSatelliteRaster)} className={`w-full px-3 py-2 rounded-xl text-xs font-semibold border flex items-center justify-center gap-2 transition-all ${showSatelliteRaster ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-sky-50 border-sky-200 text-slate-700 hover:bg-sky-100'}`}>
                       <span>🛰️ Raster Satellite SST L4 : {showSatelliteRaster ? 'ACTIF' : 'OFF'}</span>
@@ -2233,7 +2243,7 @@ export default function App() {
       <div className="shrink-0 z-30 px-4 lg:px-8 py-3 bg-white/95 backdrop-blur-md border-t border-sky-200/90 shadow-sm relative">
         <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[44px]">
           
-          {activeMode === 'visualiser' && colorMode === 'daily' && mapDataType !== 'impact' && (
+          {activeMode === 'visualiser' && colorMode === 'daily' && (
             <div className="flex items-center gap-3 bg-sky-50 px-5 py-1.5 rounded-xl border border-sky-200 shadow-sm animate-in fade-in zoom-in duration-200">
               <Thermometer className="w-5 h-5 text-rose-600" />
               <label className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
