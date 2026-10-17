@@ -1132,6 +1132,24 @@ export default function App() {
     return JSON.stringify(payload, null, 2);
   };
 
+  const getDynamicSpeciesSst = (coords: [number, number]) => {
+    if (!liveCells || liveCells.length === 0) {
+      return 22.0 + 4.0 * heatFactor;
+    }
+    const [targetLat, targetLon] = coords;
+    let closest = liveCells[0];
+    let minDist = Math.abs(closest.lat - targetLat) + Math.abs(closest.lon - targetLon);
+    for (let i = 1; i < liveCells.length; i++) {
+      const cell = liveCells[i];
+      const dist = Math.abs(cell.lat - targetLat) + Math.abs(cell.lon - targetLon);
+      if (dist < minDist) {
+        minDist = dist;
+        closest = cell;
+      }
+    }
+    return closest.sst;
+  };
+
   const triggerDownload = (format: string) => {
     const content = format === 'csv' ? generateCsvContent() : generateJsonContent();
     const mimeType = format === 'csv' ? 'text/csv;charset=utf-8;' : 'application/json;charset=utf-8;';
@@ -1678,17 +1696,43 @@ export default function App() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-sky-100">
-                    {SPECIES_DATA.map((sp) => (
-                      <tr key={sp.id} className="hover:bg-sky-50/60 transition-colors">
-                        <td className="py-3 px-4"><div className="font-bold text-slate-900">{sp.name}</div><div className="text-[11px] italic text-slate-500">{sp.scientificName}</div></td>
-                        <td className="py-3 px-4 font-semibold text-sky-700">{sp.basin}</td>
-                        <td className="py-3 px-4 text-slate-700"><div className="font-mono text-[10px] text-slate-400">{sp.coords[0]}°N, {sp.coords[1]}°E</div></td>
-                        <td className="py-3 px-4"><span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${sp.trend === 'decline' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>{sp.trendLabel}</span></td>
-                        <td className="py-3 px-4 font-mono text-slate-600">{sp.baseSst2015}°C</td>
-                        <td className="py-3 px-4 font-mono text-rose-600 font-bold">{(sp.baseSst2015 + (sp.sst2026 - sp.baseSst2015) * heatFactor).toFixed(1)}°C</td>
-                        <td className="py-3 px-4 text-slate-600">{sp.criticalThreshold}</td>
-                      </tr>
-                    ))}
+                    {SPECIES_DATA.map((sp) => {
+                      const realSst = getDynamicSpeciesSst(sp.coords);
+                      const isCriticalExceeded = realSst >= (sp.id === 'posidonie' ? 28.0 : sp.id === 'gorgone-med' ? 24.5 : 25.0);
+
+                      return (
+                        <tr key={sp.id} className={`hover:bg-sky-50/60 transition-colors ${isCriticalExceeded ? 'bg-rose-50/40' : ''}`}>
+                          <td className="py-3 px-4">
+                            <div className="font-bold text-slate-900 flex items-center gap-1.5">
+                              {sp.name}
+                              {isCriticalExceeded && (
+                                <span className="px-1.5 py-0.2 rounded bg-rose-600 text-white text-[9px] font-black uppercase tracking-wider animate-pulse">
+                                  Seuil Critique Atteint 🚨
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] italic text-slate-500">{sp.scientificName}</div>
+                          </td>
+                          <td className="py-3 px-4 font-semibold text-sky-700">{sp.basin}</td>
+                          <td className="py-3 px-4 text-slate-700">
+                            <div className="font-mono text-[10px] text-slate-400">{sp.coords[0]}°N, {sp.coords[1]}°E</div>
+                          </td>
+                          <td className="py-3 px-4">
+                            <span className={`px-2 py-0.5 rounded-full font-bold text-[11px] ${sp.trend === 'decline' ? 'bg-rose-100 text-rose-800' : 'bg-emerald-100 text-emerald-800'}`}>
+                              {sp.trendLabel}
+                            </span>
+                          </td>
+                          <td className="py-3 px-4 font-mono text-slate-600">{sp.baseSst2015}°C</td>
+                          <td className="py-3 px-4 font-mono">
+                            <strong className={isCriticalExceeded ? "text-rose-700 text-sm font-black" : "text-rose-600 font-bold"}>
+                              {realSst.toFixed(1)}°C
+                            </strong>
+                            <span className="text-[10px] text-slate-400 block">au {dynamicTelemetry?.date || 'Jour J'}</span>
+                          </td>
+                          <td className="py-3 px-4 text-slate-600">{sp.criticalThreshold}</td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
