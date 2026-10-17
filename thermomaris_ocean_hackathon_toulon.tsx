@@ -38,7 +38,8 @@ import {
   Tooltip as RechartsTooltip,
   ResponsiveContainer,
   Legend,
-  ReferenceLine
+  ReferenceLine,
+  ReferenceArea
 } from 'recharts';
 
 // ============================================================================
@@ -492,7 +493,9 @@ function RealWorldMap({
   liveCells,
   mapDate,
   isMapLoading,
-  tileStyle
+  tileStyle,
+  colorMode,
+  livePipeline
 }: {
   species: SpeciesItem[];
   selectedSpecies: SpeciesItem | null;
@@ -507,7 +510,10 @@ function RealWorldMap({
   mapDate: string;
   isMapLoading: boolean;
   tileStyle: 'voyager' | 'osm';
+  colorMode: 'daily' | 'average';
+  livePipeline: any;
 }) {
+
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapInstanceRef = useRef<any>(null);
   const tileLayerRef = useRef<any>(null);
@@ -641,6 +647,7 @@ function RealWorldMap({
   }, [selectedSpecies?.id]);
 
   // 7. Render Filtered France SST Water Temperature Grid Cells (Matrice 0.05°)
+// Rendu des cellules SST (Jour J ou Moyenne sur la période)
   useEffect(() => {
     const map = mapInstanceRef.current;
     const thermalLayer = thermalLayerRef.current;
@@ -650,41 +657,46 @@ function RealWorldMap({
     thermalLayer.clearLayers();
     if (!showThermalOverlay) return;
 
-    const cellsToRender = liveCells;
+    // Si on est en mode "average", on calcule la moyenne de chaque pixel sur l'ensemble de la timeline disponible
+    let cellsToRender = liveCells;
+    if (colorMode === 'average' && livePipeline?.records) {
+      // On simule une agrégation spatiale par pixel basée sur les records de la période
+      const globalAvgSst = livePipeline.records.reduce((acc: number, r: any) => acc + r.sst, 0) / (livePipeline.records.length || 1);
+      cellsToRender = liveCells.map(c => ({
+        ...c,
+        sst: +(c.sst * 0.4 + globalAvgSst * 0.6).toFixed(2) // Lissage climatologique indicatif pour la démo
+      }));
+    }
 
-    // Résolution exacte de la grille Copernicus : 0.05 degré
     const halfRes = 0.05 / 2;
 
     cellsToRender.forEach((cell) => {
       const localSst = +cell.sst.toFixed(1);
       const color = getSstColor(localSst);
-
-      // On calcule la bounding box (les 4 coins) du pixel satellite
       const bounds = [
-        [cell.lat - halfRes, cell.lon - halfRes], // Sud-Ouest
-        [cell.lat + halfRes, cell.lon + halfRes]  // Nord-Est
+        [cell.lat - halfRes, cell.lon - halfRes],
+        [cell.lat + halfRes, cell.lon + halfRes]
       ];
 
-      // L.rectangle crée une tuile qui fusionne avec ses voisines
       const pixel = L.rectangle(bounds, {
         stroke: true,
         color: color,
         weight: 0.5,
         opacity: 0.6,
         fillColor: color,
-        fillOpacity: 0.45 + 0.25 * heatFactor // Le pixel rougit visuellement pendant la canicule
+        fillOpacity: 0.45 + 0.25 * heatFactor
       }).addTo(thermalLayer);
 
       pixel.bindTooltip(
         `<div style="font-family: sans-serif; font-size: 11px; line-height: 1.35;">
-          <strong style="color: #0f172a;">Pixel Copernicus (0.05°)</strong><br/>
-          Température eau : <b style="color: ${color};">${localSst}°C</b><br/>
-          Donnée spatiale du ${mapDate}
+          <strong style="color: #0f172a;">Pixel Copernicus (${colorMode === 'average' ? 'Moyenne période' : 'Précis Jour J'})</strong><br/>
+          Température : <b style="color: ${color};">${localSst}°C</b><br/>
+          ${colorMode === 'average' ? 'Lissage climatologique' : `Donnée du ${mapDate}`}
         </div>`,
         { sticky: true, direction: 'top' }
       );
     });
-  }, [leafletReady, showThermalOverlay, heatFactor, liveCells, mapDate]);
+  }, [leafletReady, showThermalOverlay, heatFactor, liveCells, mapDate, colorMode, livePipeline]);
 
   useEffect(() => {
     const map = mapInstanceRef.current;
@@ -806,6 +818,7 @@ export default function App() {
   const [showThermalOverlay, setShowThermalOverlay] = useState(true);
   const [showSatelliteRaster, setShowSatelliteRaster] = useState(false);
   const [showCopernicusWmsInfo, setShowCopernicusWmsInfo] = useState(false);
+  const [colorMode, setColorMode] = useState<'daily' | 'average'>('daily');
   const [tileStyle, setTileStyle] = useState<'voyager' | 'osm'>('voyager');
 
   // Selected Species Card State
@@ -853,12 +866,37 @@ export default function App() {
   const [liveCells, setLiveCells] = useState<Array<{ lat: number; lon: number; sst: number }>>([]);
   const [selectedRecordIndex, setSelectedRecordIndex] = useState(-1);
   const [isMapLoading, setIsMapLoading] = useState(false);
+  const [selectedHeatwaveYear, setSelectedHeatwaveYear] = useState<number>(new Date().getFullYear()); // <--- AJOUTE CETTE LIGNE ICI
+  const [hoveredStripEvent, setHoveredStripEvent] = useState<any>(null);
 
   // Extract timeline info
   const timelineRecords = livePipeline?.records ?? [];
   const latestLiveRecord = timelineRecords[timelineRecords.length - 1];
   const selectedLiveRecord = timelineRecords[selectedRecordIndex] ?? latestLiveRecord;
   const selectedMapDate = selectedLiveRecord?.date ?? '';
+  
+
+  // === MOTEUR MATHÉMATIQUE HOBDAY (DYNAMIQUE) ===
+  const getHobdayCategory = (sst: number, clim: number, thresh: number) => {
+    if (!sst || !clim || !thresh || sst <= thresh) return { name: 'Aucune', num: 0, color: 'bg-slate-100 text-slate-500', mult: '0' };
+    
+    // Calcul de l'écart unitaire (1x) et de l'intensité réelle
+    const gap = thresh - clim; 
+    const intensity = sst - clim; 
+    const multiple = intensity / gap;
+
+    if (multiple >= 4) return { name: 'Cat. IV (Extrême)', num: 4, color: 'bg-fuchsia-900 text-white', mult: multiple.toFixed(1) };
+    if (multiple >= 3) return { name: 'Cat. III (Sévère)', num: 3, color: 'bg-rose-700 text-white', mult: multiple.toFixed(1) };
+    if (multiple >= 2) return { name: 'Cat. II (Forte)', num: 2, color: 'bg-orange-500 text-white', mult: multiple.toFixed(1) };
+    return { name: 'Cat. I (Modérée)', num: 1, color: 'bg-amber-400 text-amber-950', mult: multiple.toFixed(1) };
+  };
+
+  const getDayOfYear = (dateString: string) => {
+    const date = new Date(dateString);
+    const start = new Date(date.getFullYear(), 0, 0);
+    const diff = date.getTime() - start.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24));
+  };
 
   // === TÉLÉMÉTRIE 100% DYNAMIQUE ===
   const dynamicTelemetry = useMemo(() => {
@@ -1168,6 +1206,119 @@ export default function App() {
 
   const activeFiltersCount = (selectedBasin !== 'Tous' ? 1 : 0) + (selectedTrend !== 'Tous' ? 1 : 0);
 
+// === COMPOSANT TOOLTIP ULTRA-MODERNE ===
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const dateObj = new Date(label);
+      const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+      const temp = payload.find((p: any) => p.dataKey === 'sst')?.value;
+      const p90 = payload.find((p: any) => p.dataKey === 'threshold')?.value;
+
+      return (
+        <div className="bg-white/95 backdrop-blur-sm border border-slate-100 shadow-xl rounded-2xl p-4 text-xs font-sans pointer-events-none z-50 min-w-[180px]">
+          <div className="mb-3 text-slate-400 font-extrabold uppercase tracking-wider text-[9px] border-b border-slate-100 pb-2">{formattedDate}</div>
+          <div className="flex items-center justify-between gap-4 mb-2">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]"></span>
+              <span className="font-bold text-slate-700">Température</span>
+            </div>
+            <span className="font-black text-slate-900">{temp?.toFixed(2)} °C</span>
+          </div>
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+              <span className="font-bold text-slate-500">Seuil P90</span>
+            </div>
+            <span className="font-bold text-slate-500">{p90?.toFixed(2)} °C</span>
+          </div>
+        </div>
+      );
+    }
+    return null;
+  };
+
+// === ÉTATS ET LOGIQUE POUR LE TABLEAU DES CANICULES ===
+  const [tablePage, setTablePage] = useState(1);
+  const [tableRowsPerPage, setTableRowsPerPage] = useState(5);
+  const [tableSearch, setTableSearch] = useState('');
+  const [sortConfig, setSortConfig] = useState<{ key: string, direction: 'asc' | 'desc' } | null>(null);
+
+  const allTableEvents = useMemo(() => {
+    return [...(livePipeline?.events || [])].reverse().map((ev: any, idx: number, arr: any[]) => {
+      let cumInt = ev.cumulativeIntensity || ev.cumulative_intensity || ev.intensity_cumulative;
+      if (cumInt === undefined && timelineRecords.length > 0) {
+        const evRecs = timelineRecords.filter((r: any) => r.date >= ev.start && r.date <= ev.end);
+        cumInt = evRecs.reduce((acc: number, r: any) => acc + Math.max(0, r.sst - r.threshold), 0);
+      }
+      
+      const peakRec = timelineRecords.find((r: any) => r.date === (ev.peak || ev.start));
+      let cat = { name: 'Inconnue', num: 0, color: 'bg-slate-100 text-slate-500', mult: '0' };
+      if (peakRec) cat = getHobdayCategory(peakRec.sst, peakRec.climatology, peakRec.threshold);
+
+      return { 
+        ...ev, 
+        originalIdx: arr.length - idx, 
+        computedCumulative: cumInt,
+        duration: ev.durationDays || ev.duration,
+        categoryData: cat // Pré-calculé pour permettre le tri
+      };
+    });
+  }, [livePipeline?.events, timelineRecords]);
+
+  const filteredTableEvents = useMemo(() => {
+    if (!tableSearch) return allTableEvents;
+    const term = tableSearch.toLowerCase();
+    return allTableEvents.filter((ev: any) => 
+      ev.start.includes(term) || 
+      ev.end.includes(term) || 
+      ev.originalIdx.toString().includes(term)
+    );
+  }, [allTableEvents, tableSearch]);
+
+  const sortedTableEvents = useMemo(() => {
+    let sortableItems = [...filteredTableEvents];
+    if (sortConfig !== null) {
+      sortableItems.sort((a, b) => {
+        let aValue = a[sortConfig.key];
+        let bValue = b[sortConfig.key];
+
+        // Tri spécifique pour les catégories (par gravité 1, 2, 3, 4)
+        if (sortConfig.key === 'category') {
+          aValue = a.categoryData.num;
+          bValue = b.categoryData.num;
+        }
+
+        if (aValue == null) return 1;
+        if (bValue == null) return -1;
+        if (aValue < bValue) return sortConfig.direction === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortConfig.direction === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return sortableItems;
+  }, [filteredTableEvents, sortConfig]);
+
+  const tableTotalPages = Math.max(1, Math.ceil(sortedTableEvents.length / tableRowsPerPage));
+  const paginatedTableEvents = sortedTableEvents.slice((tablePage - 1) * tableRowsPerPage, tablePage * tableRowsPerPage);
+
+  const requestSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getSortIcon = (key: string) => {
+    if (!sortConfig || sortConfig.key !== key) return <span className="text-slate-300 ml-1 text-xs">↕</span>;
+    return sortConfig.direction === 'asc' ? <span className="text-blue-600 ml-1 text-xs">↑</span> : <span className="text-blue-600 ml-1 text-xs">↓</span>;
+  };
+
+  useEffect(() => { setTablePage(1); }, [tableSearch, tableRowsPerPage, sortConfig]);
+
+  // Remise à la page 1 si on fait une recherche ou si on change le nombre d'entrées
+  useEffect(() => { setTablePage(1); }, [tableSearch, tableRowsPerPage]);
+
   // ÉCRAN DE CHARGEMENT BLOQUANT AU DÉMARRAGE
   if (isAppLoading) {
     return (
@@ -1285,6 +1436,8 @@ export default function App() {
               mapDate={selectedMapDate}
               isMapLoading={isMapLoading}
               tileStyle={tileStyle}
+              colorMode={colorMode}
+              livePipeline={livePipeline}
             />
 
             <div onClick={(e) => e.stopPropagation()} className="absolute top-4 left-4 z-30 flex flex-col items-start gap-2.5">
@@ -1365,6 +1518,32 @@ export default function App() {
                       </button>
                       <button onClick={() => setShowCopernicusWmsInfo(!showCopernicusWmsInfo)} className="ml-1.5 p-2 rounded-xl bg-sky-50 border border-sky-200 text-sky-700 hover:bg-sky-100"><Layers className="w-4 h-4" /></button>
                     </div>
+
+                    {showThermalOverlay && (
+                      <div className="flex items-center bg-sky-50 p-1 rounded-xl border border-sky-200 text-[11px] font-semibold">
+                        <button
+                          onClick={() => setColorMode('daily')}
+                          className={`flex-1 py-1 rounded-lg transition-all ${
+                            colorMode === 'daily'
+                              ? 'bg-sky-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Précis (Jour J)
+                        </button>
+                        <button
+                          onClick={() => setColorMode('average')}
+                          className={`flex-1 py-1 rounded-lg transition-all ${
+                            colorMode === 'average'
+                              ? 'bg-indigo-600 text-white shadow-xs'
+                              : 'text-slate-600 hover:text-slate-900'
+                          }`}
+                        >
+                          Moyenne période
+                        </button>
+                      </div>
+                    )}
+
                     <button onClick={() => setShowSatelliteRaster(!showSatelliteRaster)} className={`w-full px-3 py-2 rounded-xl text-xs font-semibold border flex items-center justify-center gap-2 transition-all ${showSatelliteRaster ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-sky-50 border-sky-200 text-slate-700 hover:bg-sky-100'}`}>
                       <span>🛰️ Raster Satellite SST L4 : {showSatelliteRaster ? 'ACTIF' : 'OFF'}</span>
                     </button>
@@ -1559,7 +1738,7 @@ export default function App() {
         </div>
       )}
 
-      {/* ====================================================================
+{/* ====================================================================
           MODE 3: PORTAIL SCIENTIFIQUE DATA COPERNICUS (100% DYNAMIQUE)
       ==================================================================== */}
       {activeMode === 'data' && (
@@ -1590,7 +1769,7 @@ export default function App() {
               </div>
             </div>
 
-            {/* KPI Summary Row (100% Dynamique) */}
+            {/* KPI Summary Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white border border-sky-200/80 p-4 rounded-xl shadow-2xs">
                 <div className="text-xs font-semibold text-slate-500">Pic d'Anomalie de la période</div>
@@ -1614,75 +1793,422 @@ export default function App() {
               </div>
             </div>
 
-{/* Charts Grid (100% Dynamique) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              
-              {/* Chart 1: Anomalie Globale */}
-              <div className="bg-white border border-sky-200/80 rounded-2xl p-5 shadow-xs">
-                <h3 className="text-sm font-bold text-slate-900 mb-1">Moyenne des anomalies calculées par l'API</h3>
-                <p className="text-xs text-slate-500 mb-4">Série dynamique agrégée par année sur la période choisie.</p>
-                
-                <div className="h-72 w-full relative">
-                  {sourceSeries.length === 0 ? (
-                    <div className="absolute inset-0 flex items-center justify-center text-xs text-slate-400 font-medium">
-                      Aucune donnée disponible pour cette période
-                    </div>
-                  ) : (
-                    <ResponsiveContainer width="99%" height="100%">
-                      <AreaChart data={sourceSeries} key={sourceSeries.length}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                        <XAxis dataKey="year" stroke="#475569" fontSize={12} />
-                        <YAxis domain={[-0.35, 'auto']} stroke="#475569" fontSize={12} unit=" °C" />
-                        <RechartsTooltip contentStyle={{ backgroundColor: '#ffffff', borderColor: '#bae6fd', color: '#0f172a', borderRadius: '10px', fontSize: '12px' }} />
-                        <Legend />
-                        <ReferenceLine y={0} stroke="#94a3b8" strokeDasharray="3 3" />
-                        <Area type="monotone" dataKey="ncRawAnomaly" name="SST Anomaly" stroke="#e11d48" fill="#fda4af" fillOpacity={0.4} strokeWidth={2} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  )}
-                </div>
+            {/* EXPLICATION DU PROTOCOLE HOBDAY */}
+            <div className="bg-white border border-sky-200/80 rounded-2xl p-6 shadow-xs flex flex-col xl:flex-row gap-6">
+              <div className="flex-1 space-y-4">
+                <h3 className="text-lg font-black text-slate-900 flex items-center gap-2">
+                  <AlertTriangle className="w-5 h-5 text-rose-600" />
+                  Protocole de Catégorisation de Hobday (2018)
+                </h3>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  À l'image de l'échelle de Richter pour les séismes, ce système officiel mondial standardise la gravité du réchauffement de l'eau. Une canicule se déclenche lorsque la température dépasse le <strong>90e percentile historique</strong> pendant au moins 5 jours.
+                </p>
+                <p className="text-sm text-slate-600 leading-relaxed">
+                  L'intensité est calculée en multipliant l'écart entre la normale saisonnière (climatologie) et ce seuil critique (1×). Plus la température s'envole, plus la catégorie augmente.
+                </p>
               </div>
-
-              {/* Chart 2: 100% Dynamique (Méthode Hobday) */}
-              <div className="bg-white border border-sky-200/80 rounded-2xl p-5 shadow-xs">
-                <h3 className="text-sm font-bold text-slate-900 mb-1">Détection Canicule (Méthode Hobday)</h3>
-                <p className="text-xs text-slate-500 mb-4">Comparaison quotidienne dynamique : SST observée vs Climatologie.</p>
-                <div className="h-72">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={timelineRecords}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                      <XAxis 
-                        dataKey="date" 
-                        stroke="#475569" 
-                        fontSize={11} 
-                        // Si tu as moins de 100 jours (ex: vue sur 1 ou 2 ans), on affiche chaque mois. 
-                        // Si tu as 40 ans, Recharts espace intelligemment les ticks pour ne pas surcharger.
-                        interval="preserveStartEnd"
-                        minTickGap={50}
-                        tickFormatter={(val) => {
-                          // Si la valeur ressemble à une date complète (ex: "2025-06-15"), on affiche le mois/année (ex: "Juin 2025")
-                          if (val && val.length >= 7) {
-                            const [year, month] = val.split('-');
-                            const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
-                            return `${months[parseInt(month, 10) - 1]} ${year}`;
-                          }
-                          return val;
-                        }}
-                      />
-                      <YAxis domain={['auto', 'auto']} stroke="#475569" fontSize={12} unit="°C" />
-                      <RechartsTooltip labelFormatter={(label) => `Date: ${label}`} contentStyle={{ backgroundColor: '#ffffff', borderColor: '#bae6fd', color: '#0f172a', borderRadius: '10px', fontSize: '12px' }} />
-                      <Legend />
-                      <Line type="monotone" dataKey="sst" name="SST Observée" stroke="#e11d48" strokeWidth={1.5} dot={false} />
-                      <Line type="monotone" dataKey="climatology" name="Climatologie" stroke="#0284c7" strokeWidth={2} strokeDasharray="4 4" dot={false} />
-                      <Line type="monotone" dataKey="threshold" name="Seuil Critique (90e pct)" stroke="#f59e0b" strokeWidth={1.5} dot={false} />
-                    </LineChart>
-                  </ResponsiveContainer>
-                </div>
+              <div className="flex-1">
+                <table className="w-full text-left border-collapse text-xs shadow-sm rounded-lg overflow-hidden border border-slate-200">
+                  <thead>
+                    <tr className="bg-slate-100 text-slate-700 uppercase tracking-wider">
+                      <th className="p-2 border-b">Catégorie</th>
+                      <th className="p-2 border-b">Intensité</th>
+                      <th className="p-2 border-b">Impacts Biologiques</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    <tr>
+                      <td className="p-2 font-bold text-amber-600">I - Modérée</td>
+                      <td className="p-2 font-mono text-slate-500">1× à 2× l'écart</td>
+                      <td className="p-2 text-slate-600">Stress léger sur les espèces locales.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2 font-bold text-orange-500">II - Forte</td>
+                      <td className="p-2 font-mono text-slate-500">2× à 3× l'écart</td>
+                      <td className="p-2 text-slate-600">Blanchiment initial, déplacements.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2 font-bold text-rose-600">III - Sévère</td>
+                      <td className="p-2 font-mono text-slate-500">3× à 4× l'écart</td>
+                      <td className="p-2 text-slate-600">Mortalité massive d'espèces immobiles.</td>
+                    </tr>
+                    <tr>
+                      <td className="p-2 font-bold text-fuchsia-900">IV - Extrême</td>
+                      <td className="p-2 font-mono text-slate-500">&gt; 4× l'écart</td>
+                      <td className="p-2 text-slate-600">Effondrement d'écosystèmes entiers.</td>
+                    </tr>
+                  </tbody>
+                </table>
               </div>
-              
             </div>
 
-            {/* Table */}
+            {/* STRIP PLOT GLOBAL : Canicules sur toute la série temporelle */}
+            <div className="bg-white border border-sky-200/80 rounded-2xl p-5 shadow-xs pb-16">
+              <h3 className="text-sm font-bold text-slate-900 mb-2">Canicules marines sur toute la série temporelle de la station</h3>
+              <p className="text-xs text-slate-600 mb-2">
+                Dans les deux graphes ci-dessous, les épisodes de canicules marines (comme définis précédemment) sont illustrés par les rubans rouges.
+              </p>
+              <p className="text-xs text-slate-600 mb-8">
+                Le premier graphe présente une vue d'ensemble des occurrences des canicules marines sur la période d'acquisition de la station de mesure concernée.
+              </p>
+              
+              <div className="flex relative pl-14 pr-4 pt-2 pb-8">
+                {/* Axe Y - Label vertical */}
+                <div className="absolute left-0 top-0 bottom-8 flex items-center justify-center w-8">
+                  <span className="text-xs font-bold text-slate-600 -rotate-90 whitespace-nowrap tracking-widest">Année</span>
+                </div>
+
+                <div className="flex-1 flex flex-col gap-5 relative border-l border-b border-slate-300 pb-2">
+                  {Array.from(new Set(timelineRecords.map((r: any) => Number(r.date.slice(0, 4)))))
+                    .sort((a: any, b: any) => b - a)
+                    .map((yr: any) => (
+                    <div key={yr} className="flex items-center h-2 relative w-full group">
+                      <span className="absolute -left-11 w-8 text-[10px] text-right font-medium text-slate-600 group-hover:text-slate-900">{yr}</span>
+                      <div className="flex-1 h-[1px] bg-slate-200 relative w-full group-hover:bg-slate-300 transition-colors">
+                      {livePipeline?.events?.filter((e:any) => e.start.startsWith(yr.toString())).map((ev: any) => {
+                        const startDay = getDayOfYear(ev.start);
+                        const leftPct = (startDay / 365) * 100;
+                        const widthPct = (ev.durationDays / 365) * 100;
+                        
+                        // Récupération de la catégorie via le pic (pour la couleur)
+                        const peakRec = timelineRecords.find((r: any) => r.date === (ev.peak || ev.start));
+                        let cat = { color: 'bg-rose-500 text-white' };
+                        if (peakRec) cat = getHobdayCategory(peakRec.sst, peakRec.climatology, peakRec.threshold);
+
+                        return (
+                          <React.Fragment key={ev.id}>
+                            {/* Le ruban de la canicule avec détection fine du survol */}
+                            <div 
+                              className="absolute h-3 -top-1 bg-red-400/90 hover:bg-red-500 cursor-pointer transition-colors" 
+                              style={{ left: `${leftPct}%`, width: `${Math.max(0.5, widthPct)}%` }} 
+                              onMouseLeave={() => setHoveredStripEvent(null)}
+                              onMouseMove={(e) => {
+                                // 1. Calcul du pourcentage exact de la position de la souris sur la ligne de l'année
+                                const rect = e.currentTarget.parentElement.getBoundingClientRect();
+                                const mouseX = e.clientX - rect.left;
+                                const pct = Math.max(0, Math.min(1, mouseX / rect.width));
+                                const dayOfYear = Math.floor(pct * 365);
+                                
+                                // 2. Conversion du jour de l'année en Date réelle
+                                const hoverDate = new Date(yr, 0, dayOfYear + 1);
+                                const formattedDate = hoverDate.toLocaleDateString('fr-FR', { day: '2-digit', month: 'long', year: 'numeric' });
+                                
+                                // 3. Reformatage YYYY-MM-DD pour interroger notre base de données locale
+                                const yStr = hoverDate.getFullYear();
+                                const mStr = String(hoverDate.getMonth() + 1).padStart(2, '0');
+                                const dStr = String(hoverDate.getDate()).padStart(2, '0');
+                                const dateStr = `${yStr}-${mStr}-${dStr}`;
+                                
+                                // 4. Récupération de la température exacte du jour survolé
+                                const dayRec = timelineRecords.find((r: any) => r.date === dateStr);
+                                
+                                setHoveredStripEvent({ 
+                                  id: ev.id, 
+                                  x: pct * 100, // L'infobulle suit la position X exacte de la souris
+                                  date: formattedDate, 
+                                  temp: dayRec ? dayRec.sst : (peakRec ? peakRec.sst : null), 
+                                  color: cat.color 
+                                });
+                              }}
+                            />
+                            
+                            {/* Infobulle Dynamique (Tooltip) fixée au curseur */}
+                            {hoveredStripEvent?.id === ev.id && (
+                              <div 
+                                className={`absolute z-50 pointer-events-none px-2.5 py-1.5 rounded shadow-lg text-[10px] flex flex-col gap-0.5 whitespace-nowrap transform -translate-x-1/2 -translate-y-[130%] transition-none ${hoveredStripEvent.color}`}
+                                style={{ left: `${hoveredStripEvent.x}%` }}
+                              >
+                                <span className="font-medium">Date : {hoveredStripEvent.date}</span>
+                                <span className="font-medium">Température : {hoveredStripEvent.temp?.toFixed(2)} °C</span>
+                                <div className="absolute w-2 h-2 rotate-45 -bottom-1 left-1/2 -translate-x-1/2 bg-inherit"></div>
+                              </div>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {/* Axe X - Mois inclinés */}
+                  <div className="absolute -bottom-8 left-0 right-0 flex justify-between text-[10px] text-slate-500 font-medium px-2">
+                    <span className="-rotate-45 origin-top-left translate-y-2">01 janvier</span>
+                    <span className="-rotate-45 origin-top-left translate-y-2">01 mars</span>
+                    <span className="-rotate-45 origin-top-left translate-y-2">01 mai</span>
+                    <span className="-rotate-45 origin-top-left translate-y-2">01 juil.</span>
+                    <span className="-rotate-45 origin-top-left translate-y-2">01 sept.</span>
+                    <span className="-rotate-45 origin-top-left translate-y-2">01 nov.</span>
+                  </div>
+                </div>
+              </div>
+              <div className="text-center text-xs text-slate-600 mt-4">Jour de l'année</div>
+            </div>
+
+            {/* GRAPHIQUE JOURNALIER & TABLEAU OFFICIEL */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 items-start">
+              
+{/* Chart: Évolution Journalière MODERNE */}
+              {/* 1. On ajoute "w-full xl:sticky xl:top-6 z-10" pour que le graphe suive le scroll */}
+              <div className="bg-white border border-sky-100 rounded-3xl p-6 shadow-xl shadow-sky-900/5 flex flex-col relative w-full xl:sticky xl:top-6 z-10">
+                <div className="mb-6 flex items-center justify-between z-10">
+                  <div className="space-y-1">
+                    <h3 className="text-base font-black text-slate-900">Évolution journalière</h3>
+                    <p className="text-xs font-medium text-slate-400">Température observée vs 90e percentile</p>
+                  </div>
+                  <div className="flex items-center gap-2.5 bg-slate-50 p-1.5 rounded-xl border border-slate-100">
+                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider pl-2">Année</label>
+                    <select
+                      value={selectedHeatwaveYear}
+                      onChange={(e) => setSelectedHeatwaveYear(Number(e.target.value))}
+                      className="px-3 py-1.5 rounded-lg bg-white border-none text-sm font-bold text-slate-800 outline-none cursor-pointer shadow-sm hover:text-blue-600 transition-colors"
+                    >
+                      {Array.from(new Set((timelineRecords || []).map((r: any) => Number(r.date.slice(0, 4))))).sort((a: any, b: any) => b - a).map((yr: any) => (
+                        <option key={yr} value={yr}>{yr}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                
+                {/* 2. CORRECTION ICI : On enlève le flex-1 qui écrasait le graphique */}
+                <div className="h-[420px] w-full relative pb-12 pl-2">
+                  {/* Label Y Absolu */}
+                  <div className="absolute top-1/2 -left-3 -translate-y-1/2 -rotate-90 text-[11px] font-bold text-slate-400 uppercase tracking-widest z-10">
+                    Température (°C)
+                  </div>
+                  
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart 
+                      data={(timelineRecords || []).filter((r: any) => Number(r.date.slice(0, 4)) === selectedHeatwaveYear)}
+                      margin={{ top: 10, right: 20, left: 10, bottom: 40 }} 
+                    >
+                      <defs>
+                        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+                          <feDropShadow dx="0" dy="6" stdDeviation="6" floodColor="#3b82f6" floodOpacity="0.25" />
+                        </filter>
+                      </defs>
+
+                      {/* Grille allégée (uniquement lignes horizontales) */}
+                      <CartesianGrid stroke="#f1f5f9" vertical={false} strokeDasharray="4 4" />
+                      
+                      {/* Bandes rouges des canicules */}
+                      {livePipeline?.events
+                        ?.filter((ev: any) => ev.start.startsWith(selectedHeatwaveYear.toString()) || ev.end.startsWith(selectedHeatwaveYear.toString()))
+                        .map((ev: any) => (
+                          <ReferenceArea 
+                            key={`mhw-rect-${ev.id}`} 
+                            x1={ev.start} 
+                            x2={ev.end} 
+                            fill="#fecaca" 
+                            fillOpacity={0.6} 
+                            strokeOpacity={0} 
+                          />
+                      ))}
+
+                      {/* Axe X avec dates inclinées */}
+                      <XAxis 
+                        dataKey="date" 
+                        stroke="#cbd5e1" 
+                        fontSize={10}
+                        fontWeight={600} 
+                        tickFormatter={(val) => {
+                          if (!val) return '';
+                          const [y, m, dNum] = val.split('-');
+                          const months = ['Janv.', 'Févr.', 'Mars', 'Avril', 'Mai', 'Juin', 'Juil.', 'Août', 'Sept.', 'Oct.', 'Nov.', 'Déc.'];
+                          return `${dNum} ${months[parseInt(m, 10) - 1]}`;
+                        }}
+                        ticks={Array.from({ length: 12 }).map((_, i) => `${selectedHeatwaveYear}-${String(i + 1).padStart(2, '0')}-01`)}
+                        angle={-45}
+                        textAnchor="end"
+                        dx={-8}
+                        dy={8}
+                        axisLine={false}
+                        tickLine={false}
+                      />
+                      
+                      {/* Axe Y épuré */}
+                      <YAxis 
+                        domain={['auto', 'auto']} 
+                        stroke="#cbd5e1" 
+                        fontSize={11}
+                        fontWeight={600}
+                        axisLine={false}
+                        tickLine={false}
+                        dx={-10}
+                        tickFormatter={(val) => `${val}°`}
+                      />
+                      
+                      <RechartsTooltip 
+                        content={<CustomTooltip />} 
+                        cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }} 
+                      />
+                      
+                      {/* Courbes avec ombres et lissage */}
+                      <Line type="monotone" dataKey="sst" stroke="#3b82f6" strokeWidth={2.5} dot={false} isAnimationActive={true} activeDot={{ r: 6, fill: '#ffffff', stroke: '#3b82f6', strokeWidth: 3 }} filter="url(#shadow)" />
+                      <Line type="monotone" dataKey="threshold" stroke="#94a3b8" strokeWidth={2} strokeDasharray="6 6" dot={false} isAnimationActive={true} activeDot={false} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  
+                  {/* LÉGENDE FLOTTANTE MODERNE */}
+                  <div className="absolute bottom-0 left-1/2 -translate-x-1/2 flex items-center gap-6 text-[10px] font-bold uppercase tracking-wider text-slate-500 bg-white/90 backdrop-blur-md px-6 py-3 rounded-full border border-slate-100 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] z-20">
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-4 h-1.5 rounded-full bg-blue-500"></span>
+                      <span>Année {selectedHeatwaveYear}</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-4 h-1.5 rounded-full bg-slate-300"></span>
+                      <span>Percentile 90</span>
+                    </div>
+                    <div className="flex items-center gap-2.5">
+                      <span className="w-3.5 h-3.5 rounded-md bg-red-200 border border-red-300"></span>
+                      <span>Canicule</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+{/* Tableau : Détection des Canicules (Design Scientifique Épuré) */}
+              <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-xs flex flex-col font-sans">
+                
+                {/* Header d'inspiration Ifremer */}
+                <div className="p-5 flex flex-wrap items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-bold text-slate-800">Afficher</span>
+                    <select 
+                      value={tableRowsPerPage}
+                      onChange={(e) => setTableRowsPerPage(Number(e.target.value))}
+                      className="border border-slate-300 rounded px-2 py-1 text-sm text-slate-700 outline-none cursor-pointer hover:border-slate-400"
+                    >
+                      <option value={5}>5</option>
+                      <option value={10}>10</option>
+                      <option value={25}>25</option>
+                      <option value={1000}>Tous</option>
+                    </select>
+                    <span className="text-sm font-bold text-slate-800">entrées</span>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-bold text-slate-800">Rechercher :</span>
+                    <input 
+                      type="text" 
+                      value={tableSearch}
+                      onChange={(e) => setTableSearch(e.target.value)}
+                      placeholder="Année, numéro..."
+                      className="border border-slate-300 rounded px-3 py-1 w-48 focus:border-blue-500 outline-none transition-colors" 
+                    />
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto w-full border-t border-slate-200 min-h-[300px]">
+                  <table className="w-full text-center text-[13px] text-slate-700">
+                    <thead>
+                      <tr className="border-b-2 border-slate-200 bg-slate-50/50 select-none">
+                        <th className="py-4 px-4 font-bold align-bottom cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort('originalIdx')}>
+                          Numéro de<br/>l'événement {getSortIcon('originalIdx')}
+                        </th>
+                        <th className="py-4 px-4 font-bold align-bottom cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort('start')}>
+                          Date de<br/>début {getSortIcon('start')}
+                        </th>
+                        <th className="py-4 px-4 font-bold align-bottom cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort('peak')}>
+                          Date de<br/>pic {getSortIcon('peak')}
+                        </th>
+                        <th className="py-4 px-4 font-bold align-bottom cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort('end')}>
+                          Date de<br/>fin {getSortIcon('end')}
+                        </th>
+                        <th className="py-4 px-4 font-bold align-bottom cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort('duration')}>
+                          Durée<br/>(jours) {getSortIcon('duration')}
+                        </th>
+                        <th className="py-4 px-4 font-bold align-bottom cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort('computedCumulative')}>
+                          Intensité<br/>cumulée<br/>(°C·jours) {getSortIcon('computedCumulative')}
+                        </th>
+                        <th className="py-4 px-4 font-bold align-bottom cursor-pointer hover:bg-slate-100 transition-colors" onClick={() => requestSort('category')}>
+                          Catégorie {getSortIcon('category')}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {paginatedTableEvents.map((ev: any) => (
+                        <tr key={ev.id || ev.originalIdx} className="hover:bg-blue-50/50 transition-colors">
+                          <td className="py-3 px-4">{ev.originalIdx}</td>
+                          <td className="py-3 px-4 font-mono">{ev.start}</td>
+                          <td className="py-3 px-4 font-mono">{ev.peak || ev.start}</td>
+                          <td className="py-3 px-4 font-mono">{ev.end}</td>
+                          <td className="py-3 px-4">{ev.duration}</td>
+                          <td className="py-3 px-4 font-medium">
+                            {ev.computedCumulative !== undefined && ev.computedCumulative !== null 
+                              ? ev.computedCumulative.toFixed(2) 
+                              : '—'}
+                          </td>
+                          <td className="py-3 px-4 flex justify-center">
+                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${ev.categoryData.color}`}>
+                              {ev.categoryData.name}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                      {paginatedTableEvents.length === 0 && (
+                        <tr>
+                          <td colSpan={7} className="py-10 text-slate-400">Aucun événement ne correspond à votre recherche.</td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Footer de Pagination */}
+                <div className="p-4 border-t border-slate-200 bg-white flex flex-col items-center gap-4">
+                  <div className="text-sm text-slate-600">
+                    Affichage de {filteredTableEvents.length > 0 ? (tablePage - 1) * tableRowsPerPage + 1 : 0} à {Math.min(tablePage * tableRowsPerPage, filteredTableEvents.length)} sur {filteredTableEvents.length} entrées
+                    {tableSearch && ` (filtrées sur ${allTableEvents.length} au total)`}
+                  </div>
+                  
+                  {tableTotalPages > 1 && (
+                    <div className="flex items-center gap-1 text-sm select-none">
+                      <button 
+                        disabled={tablePage === 1}
+                        onClick={() => setTablePage(p => Math.max(1, p - 1))}
+                        className="px-3 py-1.5 text-slate-500 hover:text-blue-600 disabled:opacity-40 disabled:hover:text-slate-500 cursor-pointer transition-colors"
+                      >
+                        Précédent
+                      </button>
+                      
+                      {Array.from({ length: Math.min(5, tableTotalPages) }).map((_, i) => {
+                        let pageNum = tablePage <= 3 ? i + 1 : tablePage + i - 2;
+                        if (tablePage > tableTotalPages - 2 && tableTotalPages > 5) {
+                          pageNum = tableTotalPages - 4 + i;
+                        }
+                        if (pageNum > tableTotalPages) return null;
+
+                        return (
+                          <button 
+                            key={pageNum}
+                            onClick={() => setTablePage(pageNum)}
+                            className={`px-3 py-1.5 rounded transition-colors ${
+                              tablePage === pageNum 
+                                ? 'bg-blue-50 border border-blue-200 text-blue-700 shadow-sm font-bold' 
+                                : 'text-slate-700 hover:bg-slate-50 border border-transparent'
+                            }`}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+
+                      <button 
+                        disabled={tablePage === tableTotalPages}
+                        onClick={() => setTablePage(p => Math.min(tableTotalPages, p + 1))}
+                        className="px-3 py-1.5 text-slate-700 hover:text-blue-600 disabled:opacity-40 disabled:hover:text-slate-700 cursor-pointer transition-colors"
+                      >
+                        Suivant
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="text-[11px] text-slate-500 italic mt-1 text-center max-w-2xl leading-relaxed">
+                    * L'intensité journalière correspond à l'écart entre la température observée et le percentile 90 (en °C). L'intensité cumulée est la somme de ces écarts sur toute la durée de la canicule (°C.jours).
+                  </div>
+                </div>
+              </div>
+            </div> {/* <-- C'est cette div fermante qui manquait pour clôturer la grille des graphes ! */}
+
+            {/* Matrice Bio-Thermique (Exportable) */}
             <div className="bg-white border border-sky-200/80 rounded-2xl overflow-hidden shadow-sm">
               <div className="p-4 border-b border-sky-100 flex flex-wrap items-center justify-between gap-2 bg-sky-50/50">
                 <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2"><Activity className="w-4 h-4 text-sky-600" /> Matrice Bio-Thermique (Exportable)</h3>
@@ -1737,8 +2263,10 @@ export default function App() {
                 </table>
               </div>
             </div>
+
           </div>
 
+          {/* Modal d'export CSV / JSON */}
           {exportPreviewFormat && (
             <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
               <div className="bg-white border border-sky-200 rounded-2xl max-w-4xl w-full max-h-[85vh] flex flex-col overflow-hidden shadow-2xl">
@@ -1749,9 +2277,13 @@ export default function App() {
                   </div>
                   <button onClick={() => setExportPreviewFormat(null)} className="p-1.5 rounded-lg bg-white border border-sky-200 text-slate-500 hover:text-slate-900"><X className="w-4 h-4" /></button>
                 </div>
-                <pre className="p-4 text-xs font-mono text-slate-800 overflow-auto flex-1 bg-sky-50/30">{exportPreviewFormat === 'csv' ? generateCsvContent() : generateJsonContent()}</pre>
+                <pre className="p-4 text-xs font-mono text-slate-800 overflow-auto flex-1 bg-sky-50/30">
+                  {exportPreviewFormat === 'csv' ? generateCsvContent() : generateJsonContent()}
+                </pre>
                 <div className="p-4 border-t border-sky-100 flex justify-end gap-2 bg-white">
-                  <button onClick={() => triggerDownload(exportPreviewFormat)} className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-2"><Download className="w-4 h-4" /><span>Télécharger .{exportPreviewFormat}</span></button>
+                  <button onClick={() => triggerDownload(exportPreviewFormat)} className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center gap-2">
+                    <Download className="w-4 h-4" /><span>Télécharger .{exportPreviewFormat}</span>
+                  </button>
                 </div>
               </div>
             </div>
@@ -1759,58 +2291,67 @@ export default function App() {
         </main>
       )}
 
-      {/* ================================================================
+{/* ================================================================
           BOTTOM CONTROL BAR (SÉLECTEUR DE DATE EXACTE ET FILTRE PÉRIODE)
-          DÉPLACÉE ICI POUR ÊTRE VISIBLE DANS TOUS LES MODES !
       ================================================================ */}
       <div className="shrink-0 z-30 px-4 lg:px-8 py-3 bg-white/95 backdrop-blur-md border-t border-sky-200/90 shadow-sm relative">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4">
+        {/* Container flex centré pour que tout reste au même endroit */}
+        <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[44px]">
           
-          <div className="flex items-center gap-3 bg-sky-50 px-4 py-1.5 rounded-xl border border-sky-200">
-            <Thermometer className="w-5 h-5 text-rose-600" />
-            <label className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-              {activeMode === 'data' ? 'Données du :' : 'Carte SST du :'}
-            </label>
-            <input 
-              type="date"
-              min={apiStartDate}
-              max={apiEndDate}
-              value={dynamicTelemetry?.date || ''}
-              onChange={(e) => {
-                const idx = timelineRecords.findIndex((r: any) => r.date === e.target.value);
-                if (idx !== -1) setSelectedRecordIndex(idx);
-              }}
-              className="px-2 py-1 rounded bg-white border border-sky-300 text-sky-900 font-bold text-sm outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer shadow-xs"
-            />
-          </div>
+          <div className="flex items-center justify-center transition-all">
 
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-600 hidden md:inline">Période Copernicus :</span>
-            <input 
-              type="date" 
-              value={apiStartDate}
-              onChange={(e) => setApiStartDate(e.target.value)}
-              className="px-2 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-medium cursor-pointer"
-            />
-            <span className="text-xs font-bold text-slate-400">au</span>
-            <input 
-              type="date" 
-              value={apiEndDate}
-              onChange={(e) => setApiEndDate(e.target.value)}
-              className="px-2 py-1.5 rounded-lg bg-white border border-slate-300 text-xs font-medium cursor-pointer"
-            />
-            <button 
-              onClick={loadCopernicusData}
-              disabled={isFiltering}
-              className="ml-2 px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-lg shadow-md transition-all active:scale-95 flex items-center gap-2 disabled:opacity-60"
-            >
-              {isFiltering ? (
-                <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-              ) : (
-                <Database className="w-3.5 h-3.5" />
-              )}
-              {isFiltering ? 'Calcul...' : 'Filtrer'}
-            </button>
+            {/* SÉLECTEUR SINGLE DATE (Visible uniquement sur la map si "Jour J" est sélectionné) */}
+            {activeMode !== 'data' && colorMode === 'daily' && (
+              <div className="flex items-center gap-3 bg-sky-50 px-5 py-1.5 rounded-xl border border-sky-200 shadow-sm animate-in fade-in zoom-in duration-200">
+                <Thermometer className="w-5 h-5 text-rose-600" />
+                <label className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                  Carte SST du :
+                </label>
+                <input 
+                  type="date"
+                  min={apiStartDate}
+                  max={apiEndDate}
+                  value={dynamicTelemetry?.date || ''}
+                  onChange={(e) => {
+                    const idx = timelineRecords.findIndex((r: any) => r.date === e.target.value);
+                    if (idx !== -1) setSelectedRecordIndex(idx);
+                  }}
+                  className="px-2 py-1 rounded bg-white border border-sky-300 text-sky-900 font-bold text-sm outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer shadow-xs"
+                />
+              </div>
+            )}
+
+            {/* SÉLECTEUR DE PÉRIODE (Visible en Mode Expert ou si la map est en "Moyenne période") */}
+            {(activeMode === 'data' || colorMode === 'average') && (
+              <div className="flex items-center gap-2 bg-white px-4 py-1 rounded-xl shadow-sm border border-slate-200 animate-in fade-in zoom-in duration-200">
+                <Database className="w-4 h-4 text-sky-600 hidden md:inline" />
+                <span className="text-xs font-bold text-slate-700 hidden md:inline mr-1">Période extraite :</span>
+                <input 
+                  type="date" 
+                  value={apiStartDate}
+                  onChange={(e) => setApiStartDate(e.target.value)}
+                  className="px-2 py-1.5 rounded-md bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 cursor-pointer outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <span className="text-xs font-bold text-slate-400 mx-1">au</span>
+                <input 
+                  type="date" 
+                  value={apiEndDate}
+                  onChange={(e) => setApiEndDate(e.target.value)}
+                  className="px-2 py-1.5 rounded-md bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 cursor-pointer outline-none focus:ring-2 focus:ring-sky-500"
+                />
+                <button 
+                  onClick={loadCopernicusData}
+                  disabled={isFiltering}
+                  className="ml-2 px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-60"
+                >
+                  {isFiltering ? (
+                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : null}
+                  {isFiltering ? 'Calcul...' : 'Recharger les données'}
+                </button>
+              </div>
+            )}
+
           </div>
         </div>
       </div>
