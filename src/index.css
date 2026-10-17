@@ -3,9 +3,30 @@
 html,
 body,
 #root {
-  min-height: 100%;
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  /* Essentiel pour une web-app plein écran : empêche le scroll de la page entière */
+  overflow: hidden; 
 }
 
-body {
-  margin: 0;
+/* 
+  ========================================================================
+  CORRECTIFS UI LEAFLET
+  ========================================================================
+*/
+
+/* Nettoie le fond blanc par défaut que Leaflet met autour des marqueurs divIcon */
+.custom-species-leaflet-pin {
+  background: transparent !important;
+  border: none !important;
+}
+
+/* Assure que les tooltips de la carte passent au-dessus des autres éléments Leaflet */
+.leaflet-tooltip {
+  z-index: 1000 !important;
+  border-radius: 8px !important;
+  box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1) !important;
+  border: 1px solid #bae6fd !important;
 }

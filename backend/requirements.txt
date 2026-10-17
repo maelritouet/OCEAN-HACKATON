@@ -1,0 +1,5 @@
+fastapi
+uvicorn
+xarray
+netCDF4
+pandas

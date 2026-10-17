@@ -5,6 +5,8 @@ dist/
 coverage/
 package-lock.json
 
+data/*
+
 # Python
 .venv/
 venv/
@@ -24,4 +26,4 @@ copernicus_nc_data.json
 
 # OS files
 .DS_Store
-Thumbs.db
+Thumbs.dbbackend/data/
