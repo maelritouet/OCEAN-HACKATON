@@ -15,6 +15,9 @@
     "recharts": "^3.10.1"
   },
   "scripts": {
-    "dev": "vite"
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test:data": "python -m unittest tests/test_nc2json.py"
   }
 }
