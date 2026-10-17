@@ -2241,10 +2241,11 @@ const filteredSpecies = useMemo(() => {
 
 {/* BOTTOM CONTROL BAR */}
       <div className="shrink-0 z-30 px-4 lg:px-8 py-3 bg-white/95 backdrop-blur-md border-t border-sky-200/90 shadow-sm relative">
-        <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[44px]">
+        <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 min-h-[44px]">
           
+          {/* Mode Journalier : Sélecteur de date unique */}
           {activeMode === 'visualiser' && colorMode === 'daily' && (
-            <div className="flex items-center gap-3 bg-sky-50 px-5 py-1.5 rounded-xl border border-sky-200 shadow-sm animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-3 bg-sky-50 px-5 py-1.5 rounded-xl border border-sky-200 shadow-sm">
               <Thermometer className="w-5 h-5 text-rose-600" />
               <label className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
                 Carte SST du :
@@ -2263,8 +2264,9 @@ const filteredSpecies = useMemo(() => {
             </div>
           )}
 
+          {/* Mode Période / Moyenne : Sélecteur de plage de dates */}
           {activeMode === 'visualiser' && colorMode === 'average' && (
-            <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl shadow-sm border border-slate-200 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl shadow-sm border border-slate-200">
               <Database className="w-4 h-4 text-sky-600 hidden sm:inline" />
               <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider hidden md:inline mr-1">
                 Période d'analyse :
@@ -2285,12 +2287,23 @@ const filteredSpecies = useMemo(() => {
               <button 
                 onClick={loadCopernicusData} 
                 disabled={isFiltering}
-                className="ml-2 px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold shadow-sm transition-all active:scale-95 disabled:opacity-50"
+                className="ml-2 px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold shadow-sm transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
               >
                 {isFiltering ? 'Calcul...' : 'Recharger'}
               </button>
             </div>
           )}
+
+          {/* Bouton de bascule Journalier / Période */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setColorMode(colorMode === 'daily' ? 'average' : 'daily')}
+              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 transition-colors cursor-pointer flex items-center gap-1.5"
+            >
+              <Activity className="w-3.5 h-3.5 text-sky-700" />
+              <span>{colorMode === 'daily' ? 'Passer en Mode Période (Moyenne)' : 'Passer en Mode Journalier (Jour J)'}</span>
+            </button>
+          </div>
 
         </div>
       </div>
