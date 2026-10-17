@@ -2229,70 +2229,61 @@ export default function App() {
         </main>
       )}
 
-{/* ================================================================
-          BOTTOM CONTROL BAR (SÉLECTEUR DE DATE EXACTE ET FILTRE PÉRIODE)
-      ================================================================ */}
-      <div className="shrink-0 z-30 px-4 lg:px-8 py-3 bg-white/95 backdrop-blur-md border-t border-sky-200/90 shadow-sm relative">
-        {/* Container flex centré pour que tout reste au même endroit */}
-        <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[44px]">
-          
-          <div className="flex items-center justify-center transition-all">
+{/* BOTTOM CONTROL BAR */}
+      <div className="shrink-0 z-30 px-4 lg:px-8 py-3 bg-white/95 backdrop-blur-md border-t border-sky-200/90 shadow-sm relative">
+        <div className="max-w-7xl mx-auto flex items-center justify-center min-h-[44px]">
+          
+          {activeMode === 'visualiser' && colorMode === 'daily' && mapDataType !== 'impact' && (
+            <div className="flex items-center gap-3 bg-sky-50 px-5 py-1.5 rounded-xl border border-sky-200 shadow-sm animate-in fade-in zoom-in duration-200">
+              <Thermometer className="w-5 h-5 text-rose-600" />
+              <label className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
+                Carte SST du :
+              </label>
+              <input 
+                type="date"
+                min={apiStartDate}
+                max={apiEndDate}
+                value={dynamicTelemetry?.date || ''}
+                onChange={(e) => {
+                  const idx = timelineRecords.findIndex((r: any) => r.date === e.target.value);
+                  if (idx !== -1) setSelectedRecordIndex(idx);
+                }}
+                className="px-2 py-1 rounded bg-white border border-sky-300 text-sky-900 font-bold text-sm outline-none cursor-pointer"
+              />
+            </div>
+          )}
 
-            {/* SÉLECTEUR SINGLE DATE (Visible uniquement sur la map si "Jour J" est sélectionné) */}
-            {activeMode === 'visualiser' && colorMode === 'daily' && mapDataType === 'sst' && (
-              <div className="flex items-center gap-3 bg-sky-50 px-5 py-1.5 rounded-xl border border-sky-200 shadow-sm animate-in fade-in zoom-in duration-200">
-                <Thermometer className="w-5 h-5 text-rose-600" />
-                <label className="text-xs font-extrabold uppercase tracking-wider text-slate-800">
-                  Carte SST du :
-                </label>
-                <input 
-                  type="date"
-                  min={apiStartDate}
-                  max={apiEndDate}
-                  value={dynamicTelemetry?.date || ''}
-                  onChange={(e) => {
-                    const idx = timelineRecords.findIndex((r: any) => r.date === e.target.value);
-                    if (idx !== -1) setSelectedRecordIndex(idx);
-                  }}
-                  className="px-2 py-1 rounded bg-white border border-sky-300 text-sky-900 font-bold text-sm outline-none focus:ring-2 focus:ring-sky-500 cursor-pointer shadow-xs"
-                />
-              </div>
-            )}
+          {activeMode === 'visualiser' && colorMode === 'average' && (
+            <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl shadow-sm border border-slate-200 animate-in fade-in zoom-in duration-200">
+              <Database className="w-4 h-4 text-sky-600 hidden sm:inline" />
+              <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider hidden md:inline mr-1">
+                Période d'analyse :
+              </span>
+              <input 
+                type="date" 
+                value={apiStartDate} 
+                onChange={(e) => setApiStartDate(e.target.value)} 
+                className="px-2 py-1 border border-slate-200 rounded-md text-xs font-bold text-slate-800 outline-none focus:border-sky-500 cursor-pointer" 
+              />
+              <span className="text-xs font-bold text-slate-400 mx-1">au</span>
+              <input 
+                type="date" 
+                value={apiEndDate} 
+                onChange={(e) => setApiEndDate(e.target.value)} 
+                className="px-2 py-1 border border-slate-200 rounded-md text-xs font-bold text-slate-800 outline-none focus:border-sky-500 cursor-pointer" 
+              />
+              <button 
+                onClick={loadCopernicusData} 
+                disabled={isFiltering}
+                className="ml-2 px-3 py-1 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold shadow-sm transition-all active:scale-95 disabled:opacity-50"
+              >
+                {isFiltering ? 'Calcul...' : 'Recharger'}
+              </button>
+            </div>
+          )}
 
-            {/* SÉLECTEUR DE PÉRIODE (Visible en Mode Expert ou si la map est en "Moyenne période") */}
-            {(activeMode === 'data' || colorMode === 'average') && (
-              <div className="flex items-center gap-2 bg-white px-4 py-1 rounded-xl shadow-sm border border-slate-200 animate-in fade-in zoom-in duration-200">
-                <Database className="w-4 h-4 text-sky-600 hidden md:inline" />
-                <span className="text-xs font-bold text-slate-700 hidden md:inline mr-1">Période extraite :</span>
-                <input 
-                  type="date" 
-                  value={apiStartDate}
-                  onChange={(e) => setApiStartDate(e.target.value)}
-                  className="px-2 py-1.5 rounded-md bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 cursor-pointer outline-none focus:ring-2 focus:ring-sky-500"
-                />
-                <span className="text-xs font-bold text-slate-400 mx-1">au</span>
-                <input 
-                  type="date" 
-                  value={apiEndDate}
-                  onChange={(e) => setApiEndDate(e.target.value)}
-                  className="px-2 py-1.5 rounded-md bg-slate-50 border border-slate-200 text-xs font-bold text-slate-700 cursor-pointer outline-none focus:ring-2 focus:ring-sky-500"
-                />
-                <button 
-                  onClick={loadCopernicusData}
-                  disabled={isFiltering}
-                  className="ml-2 px-4 py-1.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-lg shadow-sm transition-all active:scale-95 flex items-center gap-2 disabled:opacity-60"
-                >
-                  {isFiltering ? (
-                    <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  ) : null}
-                  {isFiltering ? 'Calcul...' : 'Recharger les données'}
-                </button>
-              </div>
-            )}
-
-          </div>
-        </div>
-      </div>
+        </div>
+      </div>
     </div>
   );
 }
