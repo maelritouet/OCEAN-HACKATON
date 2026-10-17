@@ -8,6 +8,8 @@ import tempfile
 from pathlib import Path
 from typing import Any
 from datetime import date, timedelta
+import os
+import pandas as pd
 
 REP_DATASET_ID = "C3S-GLO-SST-L4-REP-OBS-SST"
 DEFAULT_DATASET_VERSION = "202506"
@@ -24,11 +26,12 @@ def read_dataframe_subset(
     bbox: tuple[float, float, float, float],
     dataset_version: str | None = None,
 ) -> Any:
-    """Read a Copernicus subset directly as a pandas DataFrame."""
+    """Read a Copernicus subset natively."""
     try:
         import copernicusmarine
     except ModuleNotFoundError as exc:
         raise SystemExit("Install Copernicus access with `pip install copernicusmarine`.") from exc
+        
     options: dict[str, Any] = {
         "dataset_id": dataset_id,
         "variables": [variable],
@@ -39,14 +42,14 @@ def read_dataframe_subset(
     }
     if dataset_version:
         options["dataset_version"] = dataset_version
+        
+    # On utilise la méthode officielle qui est stable
     frame = copernicusmarine.read_dataframe(**options)
-    if frame is None:
-        raise RuntimeError(
-            "Copernicus returned no data. Configure credentials with `copernicusmarine login` "
-            "or the toolbox credential environment before starting the backend."
-        )
+    
+    if frame is None or frame.empty:
+        raise RuntimeError("Copernicus returned no data for this date.")
+        
     return frame
-
 
 def normalise_dataframe(frame: Any, variable: str) -> Any:
     """Normalize Copernicus Toolbox output to one daily ``date``/``sst`` table."""
@@ -72,13 +75,17 @@ def fetch_rep_nrt_series(
 ) -> tuple[Any, dict[str, Any]]:
     """Fetch and merge the REP baseline product with the NRT continuation."""
     import pandas as pd
+    from datetime import date, timedelta
 
     requested_start = pd.Timestamp(start)
     requested_end = pd.Timestamp(end)
     rep_end = min(requested_end, pd.Timestamp("2024-12-31"))
     frames = []
     products = []
+    
+    # 1. TÉLÉCHARGEMENT HISTORIQUE (REP)
     if requested_start <= rep_end:
+        print(f"📥 Téléchargement historique REP (jusqu'en 2024)...")
         rep = read_dataframe_subset(
             requested_start.date().isoformat(), rep_end.date().isoformat(),
             dataset_id=REP_DATASET_ID, dataset_version=DEFAULT_DATASET_VERSION,
@@ -86,20 +93,40 @@ def fetch_rep_nrt_series(
         )
         frames.append(normalise_dataframe(rep, variable))
         products.append({"datasetId": REP_DATASET_ID, "period": [requested_start.date().isoformat(), rep_end.date().isoformat()]})
+        
     nrt_start = max(requested_start, pd.Timestamp("2025-01-01"))
-    # OSTIA NRT is normally published one day behind UTC; do not request an
-    # incomplete current day from the catalogue.
-    nrt_end = min(requested_end, pd.Timestamp(date.today() - timedelta(days=1)))
-    if nrt_start <= nrt_end:
-        nrt = read_dataframe_subset(
-            nrt_start.date().isoformat(), nrt_end.date().isoformat(),
-            dataset_id=NRT_DATASET_ID, variable=variable, bbox=bbox,
-        )
-        frames.append(normalise_dataframe(nrt, variable))
-        products.append({"datasetId": NRT_DATASET_ID, "period": [nrt_start.date().isoformat(), nrt_end.date().isoformat()]})
+    
+    # 2. TÉLÉCHARGEMENT TEMPS RÉEL (NRT) AVEC AUTO-FALLBACK
+    if nrt_start <= requested_end:
+        success = False
+        # On teste jusqu'à 7 jours de décalage
+        for offset in range(1, 8):
+            attempt_end = min(requested_end, pd.Timestamp(date.today() - timedelta(days=offset)))
+            if attempt_end < nrt_start:
+                break
+                
+            try:
+                print(f"📡 Tentative NRT de {nrt_start.date()} à {attempt_end.date()}...")
+                nrt = read_dataframe_subset(
+                    nrt_start.date().isoformat(), attempt_end.date().isoformat(),
+                    dataset_id=NRT_DATASET_ID, variable=variable, bbox=bbox,
+                )
+                frames.append(normalise_dataframe(nrt, variable))
+                products.append({"datasetId": NRT_DATASET_ID, "period": [nrt_start.date().isoformat(), attempt_end.date().isoformat()]})
+                success = True
+                break # Succès ! On sort de la boucle
+            except Exception as e:
+                print(f"⚠️ NRT indisponible à J-{offset} ({e}). On recule d'un jour...")
+                continue
+                
+        if not success:
+            print("❌ Impossible de charger les données NRT récentes.")
+
     if not frames:
-        raise ValueError("Requested period does not overlap REP (through 2024) or NRT (from 2025)")
-    return pd.concat(frames, ignore_index=True).drop_duplicates("date").sort_values("date").reset_index(drop=True), {"products": products}
+        raise ValueError("Impossible de récupérer les données REP ou NRT.")
+        
+    merged = pd.concat(frames, ignore_index=True).drop_duplicates("date").sort_values("date").reset_index(drop=True)
+    return merged, {"products": products}
 
 
 def load_daily_sst(path: Path, variable: str) -> pd.DataFrame:
@@ -127,21 +154,33 @@ def load_daily_sst(path: Path, variable: str) -> pd.DataFrame:
     return frame.dropna().groupby("date", as_index=False)["sst"].mean()
 
 
-def build_payload(frame: pd.DataFrame, baseline_start: str, baseline_end: str, source: dict[str, Any]) -> dict[str, Any]:
+def build_payload(frame: pd.DataFrame, baseline_start: str, baseline_end: str, source: dict[str, Any], filter_start: str | None = None, filter_end: str | None = None) -> dict[str, Any]:
     from hobday import detect_hobday_events
+    import pandas as pd
 
+    # 1. On calcule toujours Hobday sur l'historique complet pour que la climatologie (1991-2020) soit valide
     result = detect_hobday_events(frame, baseline_start, baseline_end)
+    
+    records = result.records
+    
+    # 2. Si le front a demandé une période spécifique (ex: 2025-2026), on filtre les records affichés après coup, 
+    # tout en gardant l'algorithme valide sur toute la série !
+    if filter_start and filter_end:
+        fs = pd.Timestamp(filter_start)
+        fe = pd.Timestamp(filter_end)
+        records = [r for r in records if fs <= pd.Timestamp(r["date"]) <= fe]
+
     return {
         "schemaVersion": 2,
         "source": source,
         "method": result.settings,
         "coverage": {
-            "start": result.records[0]["date"] if result.records else None,
-            "end": result.records[-1]["date"] if result.records else None,
-            "recordCount": len(result.records),
+            "start": records[0]["date"] if records else None,
+            "end": records[-1]["date"] if records else None,
+            "recordCount": len(records),
         },
-        "events": result.events,
-        "records": result.records,
+        "events": result.events, # Les canicules détectées sur toute la période
+        "records": records,      # Les points filtrés affichés sur le graphique
     }
 
 
