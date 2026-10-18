@@ -1667,8 +1667,12 @@ const filteredSpecies = useMemo(() => {
                         {/* BOUTON IMPACT BIOLOGIQUE */}
                         <button
                           onClick={() => setMapDataType(mapDataType === 'impact' ? 'sst' : 'impact')}
-                          className={`w-full py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${mapDataType === 'impact' ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md' : 'bg-white text-purple-700 hover:bg-purple-50 border border-purple-200'}`}
-                        >
+                        className={`w-full py-1.5 rounded-lg transition-all flex items-center justify-center gap-1.5 ${
+                            mapDataType === 'impact' 
+                              ? 'bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md' 
+                              : 'text-slate-500 hover:text-purple-600 hover:bg-slate-200/50'
+                          }`}                        
+                          >
                           <span>🐙 Mode Impact Biologique</span>
                         </button>
                       </div>
