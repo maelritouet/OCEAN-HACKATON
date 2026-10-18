@@ -652,10 +652,8 @@ function RealWorldMap({
     }
 
     const halfRes = 0.05 / 2;
-    // Correction de l'année de référence (NaN-NaN) sécurisée
-    const parsedYear = apiStartDate ? new Date(apiStartDate).getFullYear() : 2024;
-    const baselineStart = isNaN(parsedYear) ? 1991 : parsedYear - 30;
-    const baselineEnd = isNaN(parsedYear) ? 2020 : parsedYear - 1;
+    const baselineStart = 1991;
+    const baselineEnd = 2020;
 
     const clim = dynamicTelemetry?.climatology || 20.0;
     const thresh = dynamicTelemetry?.threshold || 22.0;
@@ -1857,9 +1855,8 @@ const filteredSpecies = useMemo(() => {
       ==================================================================== */}
       {activeMode === 'comprendre' && (() => {
         // Calcul dynamique de la période de référence des 30 ans
-        const refYear = new Date(apiStartDate).getFullYear();
-        const baselineStart = refYear - 30;
-        const baselineEnd = refYear - 1;
+        const baselineStart = 1991;
+        const baselineEnd = 2020;
 
         return (
         <main className="flex-1 overflow-y-auto w-full px-4 lg:px-8 py-6 bg-slate-50">
