@@ -1602,7 +1602,7 @@ const filteredSpecies = useMemo(() => {
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">1. Filtrer par Façade</label>
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">Filtrer par Façade</label>
                     <div className="grid grid-cols-1 gap-1.5">
                       {[
                         { id: 'Tous', label: '🇫🇷 Toutes les façades (France)' },
@@ -1619,27 +1619,10 @@ const filteredSpecies = useMemo(() => {
                         </button>
                       ))}
                     </div>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">2. Réponse à la Canicule</label>
-                    <div className="grid grid-cols-1 gap-1.5">
-                      <button onClick={() => setSelectedTrend('Tous')} className={`px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all ${selectedTrend === 'Tous' ? 'bg-slate-800 text-white' : 'bg-sky-50/80 text-slate-600 hover:bg-sky-100 border border-sky-200/60'}`}>
-                        Toutes les espèces ({SPECIES_DATA.length})
-                      </button>
-                      <button onClick={() => setSelectedTrend('decline')} className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${selectedTrend === 'decline' ? 'bg-rose-600 text-white shadow-xs' : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100'}`}>
-                        <span className="w-4 h-4 rounded-full bg-rose-700 text-white font-bold flex items-center justify-center text-xs">−</span>
-                        <span>Disparaît / En déclin</span>
-                      </button>
-                      <button onClick={() => setSelectedTrend('proliferate')} className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${selectedTrend === 'proliferate' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'}`}>
-                        <span className="w-4 h-4 rounded-full bg-emerald-700 text-white font-bold flex items-center justify-center text-xs">+</span>
-                        <span>Apparaît / Prolifère</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="pt-2 border-t border-sky-100 space-y-2">
-                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">3. Cartes SST Copernicus</label>
+                  </div>          
+            
+            <div className="pt-2 border-t border-sky-100 space-y-2">
+                    <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">Les différents types de cartes</label>
                     <div className="flex items-center justify-between">
                       <button onClick={() => setShowThermalOverlay(!showThermalOverlay)} className={`flex-1 px-3 py-2 rounded-xl text-xs font-semibold border flex items-center justify-center gap-2 transition-all ${showThermalOverlay ? 'bg-gradient-to-r from-orange-50 to-rose-100 border-rose-300 text-rose-800' : 'bg-sky-50 border-sky-200 text-slate-600'}`}>
                         <Thermometer className="w-4 h-4 text-rose-600" /> <span>Pixels NRT : {showThermalOverlay ? 'ON' : 'OFF'}</span>
@@ -1678,6 +1661,26 @@ const filteredSpecies = useMemo(() => {
                       </div>
                     )}
 
+                                {mapDataType === 'impact' && (
+              <div className="space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-200">
+                <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500 block">Les espèces impactées</label>
+                <div className="grid grid-cols-1 gap-1.5">
+                  <button onClick={() => setSelectedTrend('Tous')} className={`px-3 py-2 rounded-xl text-xs font-semibold text-left transition-all ${selectedTrend === 'Tous' ? 'bg-slate-800 text-white' : 'bg-sky-50/80 text-slate-600 hover:bg-sky-100 border border-sky-200/60'}`}>
+                    Toutes les espèces ({SPECIES_DATA.length})
+                  </button>
+                  <button onClick={() => setSelectedTrend('decline')} className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${selectedTrend === 'decline' ? 'bg-rose-600 text-white shadow-xs' : 'bg-rose-50 text-rose-800 border border-rose-200 hover:bg-rose-100'}`}>
+                    <span className="w-4 h-4 rounded-full bg-rose-700 text-white font-bold flex items-center justify-center text-xs">−</span>
+                    <span>Disparaît / En déclin</span>
+                  </button>
+                  <button onClick={() => setSelectedTrend('proliferate')} className={`px-3 py-2 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all ${selectedTrend === 'proliferate' ? 'bg-emerald-600 text-white shadow-xs' : 'bg-emerald-50 text-emerald-800 border border-emerald-200 hover:bg-emerald-100'}`}>
+                    <span className="w-4 h-4 rounded-full bg-emerald-700 text-white font-bold flex items-center justify-center text-xs">+</span>
+                    <span>Apparaît / Prolifère</span>
+                  </button>
+                </div>
+              </div>
+            )}
+
+
                     <button onClick={() => setShowSatelliteRaster(!showSatelliteRaster)} className={`w-full px-3 py-2 rounded-xl text-xs font-semibold border flex items-center justify-center gap-2 transition-all ${showSatelliteRaster ? 'bg-indigo-600 text-white border-indigo-700' : 'bg-sky-50 border-sky-200 text-slate-700 hover:bg-sky-100'}`}>
                       <span>🛰️ Raster Satellite SST L4 : {showSatelliteRaster ? 'ACTIF' : 'OFF'}</span>
                     </button>
@@ -1692,6 +1695,10 @@ const filteredSpecies = useMemo(() => {
                       </div>
                     )}
                   </div>
+
+
+
+                    
                 </div>
               )}
 
