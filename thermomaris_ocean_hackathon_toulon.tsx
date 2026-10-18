@@ -2265,7 +2265,8 @@ const filteredSpecies = useMemo(() => {
           )}
 
           {/* Mode Période / Moyenne : Sélecteur de plage de dates */}
-          {activeMode === 'visualiser' && colorMode === 'average' && (
+{/* Mode Période / Moyenne : Sélecteur de plage de dates (Visible en mode Visualiser/Moyenne ET dans le mode Comprendre) */}
+          {(activeMode === 'comprendre' || (activeMode === 'visualiser' && colorMode === 'average')) && (
             <div className="flex items-center gap-2 bg-white px-4 py-1.5 rounded-xl shadow-sm border border-slate-200">
               <Database className="w-4 h-4 text-sky-600 hidden sm:inline" />
               <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider hidden md:inline mr-1">
@@ -2295,15 +2296,17 @@ const filteredSpecies = useMemo(() => {
           )}
 
           {/* Bouton de bascule Journalier / Période */}
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setColorMode(colorMode === 'daily' ? 'average' : 'daily')}
-              className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 transition-colors cursor-pointer flex items-center gap-1.5"
-            >
-              <Activity className="w-3.5 h-3.5 text-sky-700" />
-              <span>{colorMode === 'daily' ? 'Passer en Mode Période (Moyenne)' : 'Passer en Mode Journalier (Jour J)'}</span>
-            </button>
-          </div>
+            {activeMode === 'visualiser' && (
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setColorMode(colorMode === 'daily' ? 'average' : 'daily')}
+                  className="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-sky-100 hover:bg-sky-200 text-sky-900 border border-sky-300 transition-colors cursor-pointer flex items-center gap-1.5"
+                >
+                  <Activity className="w-3.5 h-3.5 text-sky-700" />
+                  <span>{colorMode === 'daily' ? 'Passer en Mode Période (Moyenne)' : 'Passer en Mode Journalier (Jour J)'}</span>
+                </button>
+              </div>
+            )}
 
         </div>
       </div>
