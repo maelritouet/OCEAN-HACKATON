@@ -78,264 +78,237 @@ type SpeciesItem = {
 };
 
 const SPECIES_DATA: SpeciesItem[] = [
-  {
-    id: 'corail-rouge',
-    name: 'Corail Rouge',
-    scientificName: 'Corallium rubrum',
-    basin: 'Méditerranée',
-    locationName: 'Côte Vermeille & Réserve de Banyuls',
-    coords: [42.48, 3.16],
-    trend: 'decline',
-    trendLabel: '- Blanchissement & Nécrose',
-    criticalThreshold: '> 24.0°C prolongé sous la thermocline',
-    baseSst2015: 22.4,
-    sst2026: 28.1,
-    mortalityRate: '60% des colonies peu profondes touchées',
-    impactDetails: 'Extrêmement sensible au réchauffement des couches d’eau intermédiaires, le corail rouge perd ses polypes nourriciers lors des vagues de chaleur. Sa croissance très lente empêche toute régénération rapide entre deux étés caniculaires.',
-    narrationText: 'Sur les tombants rocheux méditerranéens, le précieux corail rouge met des décennies à grandir de quelques centimètres. Les canicules marines répétées détruisent en un été ce que la mer a mis un siècle à bâtir.',
-    shortDesc: 'Corail précieux de Méditerranée.',
-    museumSection: 'med'
-  },
-  {
-    id: 'plancton-global',
-    name: 'Plancton & Micro-algues',
-    scientificName: 'Phytoplancton & Copépodes',
-    basin: 'Méditerranée',
-    locationName: 'Golfe du Lion (Large)',
-    coords: [42.85, 4.25],
-    trend: 'decline',
-    trendLabel: '- Chute du bon plancton / + Algues toxiques',
-    criticalThreshold: 'Stratification thermique dès +2.0°C d’anomalie SST',
-    baseSst2015: 22.1,
-    sst2026: 28.0,
-    mortalityRate: '-30% de biomasse zooplanctonique nutritive en été',
-    shortDesc: 'La base invisible de toute la chaîne alimentaire océanique et premier producteur d’oxygène.',
-    impactDetails: 'Les canicules marines bloquent le brassage vertical des eaux (stratification). Privé de sels nutritifs profonds, le phytoplancton nourricier s’effondre au profit de micro-algues toxiques comme Ostreopsis ovata sur nos côtes.',
-    narrationText: 'Tout commence dans l’infiniment petit : le plancton produit plus de la moitié de l’oxygène que nous respirons. Mais la chaleur bloque les courants nutritifs, affamant le bon plancton et déclenchant des proliférations de micro-algues toxiques.',
-    museumSection: 'plankton'
-  },
-  {
-    id: 'eponges-med',
-    name: 'Éponges & Grande Nacre',
-    scientificName: 'Spongia officinalis & Pinna nobilis',
-    basin: 'Méditerranée',
-    locationName: 'Parc National des Calanques & Côte Bleue',
-    coords: [43.18, 5.32],
-    trend: 'decline',
-    trendLabel: '- Extinction locale',
-    criticalThreshold: '> 25.5°C + prolifération de protozoaires',
-    baseSst2015: 22.9,
-    sst2026: 28.6,
-    mortalityRate: '95% des Grandes Nacres décimées, éponges nécrosées',
-    shortDesc: 'Filtreurs géants de Méditerranée.',
-    impactDetails: 'Les températures élevées activent des bactéries Vibrio et des parasites (Haplosporidium pinnae) qui déciment les éponges et la Grande Nacre. En perdant ces organismes filtreurs, toute la qualité de l’eau côtière se dégrade.',
-    narrationText: 'Les éponges et la grande nacre filtrent des milliers de litres d’eau chaque jour en Méditerranée. Le réchauffement de l’eau favorise des parasites foudroyants qui les font disparaître à un rythme alarmant.',
-    museumSection: 'med'
-  },
-  {
-    id: 'posidonie',
-    name: 'Herbier de Posidonie',
-    scientificName: 'Posidonia oceanica',
-    basin: 'Méditerranée',
-    locationName: 'Littoral Varois & Îles d’Or',
-    coords: [42.98, 6.22],
-    trend: 'decline',
-    trendLabel: '- Déclin thermique',
-    criticalThreshold: '> 28.0°C en zone côtière peu profonde',
-    baseSst2015: 23.5,
-    sst2026: 29.3,
-    mortalityRate: 'Perte de densité foliaire et relargage de carbone',
-    shortDesc: 'Le poumon vert de la Méditerranée, puits de carbone majeur et nurserie pour 25% des espèces.',
-    impactDetails: 'À plus de 28°C, la posidonie subit un déséquilibre métabolique : elle consomme plus d’oxygène par respiration qu’elle n’en produit par photosynthèse. Cela provoque des floraisons anormales d’épuisement et une mortalité des rhizomes.',
-    narrationText: 'La posidonie n’est pas une algue, mais une plante à fleurs sous-marine qui protège nos plages et capte cinq fois plus de carbone qu’une forêt tropicale. Au-delà de vingt-huit degrés, ce poumon de la Méditerranée s’asphyxie.',
-    museumSection: 'med'
-  },
-  {
-    id: 'tortue-caouanne',
-    name: 'Tortue Caouanne',
-    scientificName: 'Caretta caretta',
-    basin: 'Méditerranée',
-    locationName: 'Plages de la Côte d’Azur',
-    coords: [43.52, 7.12],
-    trend: 'proliferate',
-    trendLabel: '+ Nouvelles pontes au Nord (+ Féminisation)',
-    criticalThreshold: '> 29.0°C dans le sable = 100% de naissances femelles',
-    baseSst2015: 23.0,
-    sst2026: 29.1,
-    mortalityRate: 'Déplacement historique des aires de ponte vers le Nord-Ouest',
-    shortDesc: 'Elle vient désormais pondre sur les plages françaises, fuyant la Méditerranée orientale trop brûlante.',
-    impactDetails: 'On observe de plus en plus de pontes sur les côtes françaises (+ apparition), mais c’est le symptôme d’une crise : chez les tortues marines, la température d’incubation détermine le sexe. Un sable trop chaud ne produit presque plus aucun mâle.',
-    narrationText: 'Voir la tortue caouanne pondre sur nos plages semble être une bonne nouvelle. En réalité, elle fuit la Méditerranée orientale devenue trop brûlante. Et au-delà de vingt-neuf degrés, la chaleur ne fait naître que des femelles, menaçant l’avenir de l’espèce.',
-    museumSection: 'med'
-  },
-  {
-    id: 'gorgone-med',
-    name: 'Gorgone Rouge',
-    scientificName: 'Paramuricea clavata',
-    basin: 'Méditerranée',
-    locationName: 'Réserve de Scandola & Ouest Corse',
-    coords: [42.36, 8.54],
-    trend: 'decline',
-    trendLabel: '- Mortalité massive',
-    criticalThreshold: '> 24.5°C entre 15m et 35m de profondeur pendant 5 jours',
-    baseSst2015: 22.8,
-    sst2026: 28.4,
-    mortalityRate: 'Jusqu’à 80% de nécrose observée entre 0 et 30m',
-    shortDesc: 'Véritable forêt animale sous-marine méditerranéenne, décimée par les anomalies thermiques.',
-    impactDetails: 'Lors des canicules marines, la thermocline s’enfonce jusqu’à 35-40 mètres. La Gorgone subit un stress thermique aigu suivi du développement de pathogènes opportunistes : ses tissus se nécrosent et ne laissent que le squelette nu.',
-    narrationText: 'En Méditerranée, la gorgone rouge forme de véritables forêts sous-marines. Mais lorsque la température dépasse vingt-cinq degrés en profondeur, ses tissus se nécrosent en quelques jours.',
-    museumSection: 'med'
-  },
-  {
-    id: 'meduse-pelagia',
-    name: 'Méduse Pélagique (Pelagia)',
-    scientificName: 'Pelagia noctiluca',
-    basin: 'Méditerranée',
-    locationName: 'Mer Ligure & Large Corse',
-    coords: [43.15, 8.35],
-    trend: 'proliferate',
-    trendLabel: '+ Blooms explosifs',
-    criticalThreshold: 'Favorisée dès > 24.0°C (accélération métabolique)',
-    baseSst2015: 23.1,
-    sst2026: 29.0,
-    mortalityRate: 'Multiplication par x4 de la fréquence des essaims',
-    shortDesc: 'Espèce gélatineuse urticante dont le cycle de reproduction s’accélère lors des canicules marines.',
-    impactDetails: 'Les eaux chaudes accélèrent la maturation sexuelle des méduses et prolongent leur période de reproduction. De plus, la raréfaction de leurs prédateurs et concurrents leur laisse le champ libre pour former d’immenses radeaux côtiers.',
-    narrationText: 'À l’inverse des coraux qui meurent, la méduse Pelagia profite pleinement des canicules marines. L’eau chaude accélère sa reproduction et déclenche des invasions massives sur les plages méditerranéennes.',
-    museumSection: 'med'
-  },
-  // ATLANTIQUE / BRETAGNE
-  {
-    id: 'laminaires-bretagne',
-    name: 'Forêts de Laminaires (Kelp)',
-    scientificName: 'Laminaria hyperborea & digitata',
-    basin: 'Atlantique',
-    locationName: 'Mer d’Iroise & Côtes de Bretagne',
-    coords: [48.28, -4.78],
-    trend: 'decline',
-    trendLabel: '- Régression vers le Nord',
-    criticalThreshold: '> 19.5°C (arrêt de croissance et dégradation)',
-    baseSst2015: 16.4,
-    sst2026: 21.2,
-    mortalityRate: 'Recul de 35% de la biomasse sur la limite sud bretonne',
-    shortDesc: 'Cathédrales d’algues brunes géantes d’Atlantique, refuges indispensables des poissons et crustacés.',
-    impactDetails: 'Les laminaires sont des algues d’eaux froides à tempérées. Lors des canicules marines atlantiques (> 20°C), leurs frondes se fragilisent, leur reproduction est bloquée et elles sont remplacées par du gazon algal beaucoup moins riche en biodiversité.',
-    narrationText: 'Direction l’Atlantique et la Bretagne. Les forêts de laminaires sont de véritables cathédrales sous-marines. Mais ces algues d’eaux fraîches supportent mal de dépasser vingt degrés et reculent rapidement vers le nord.',
-    museumSection: 'atl'
-  },
-  {
-    id: 'morue-atlantique',
-    name: 'Morue (Cabillaud)',
-    scientificName: 'Gadus morhua',
-    basin: 'Atlantique',
-    locationName: 'Plateau Celtique & Façade Atlantique',
-    coords: [47.25, -3.55],
-    trend: 'decline',
-    trendLabel: '- Migration forcée au Nord',
-    criticalThreshold: '> 16.0°C pour la survie des œufs et larves',
-    baseSst2015: 17.2,
-    sst2026: 22.0,
-    mortalityRate: 'Déplacement de son aire de répartition de +200 km vers le Nord',
-    shortDesc: 'Poisson emblématique des eaux froides qui déserte progressivement les côtes françaises.',
-    impactDetails: 'Chez le cabillaud, une eau trop chaude réduit la capacité de transport d’oxygène dans le sang et empêche le bon développement embryonnaire. Les stocks quittent nos côtes atlantiques pour chercher des eaux plus froides en mer du Nord et Norvège.',
-    narrationText: 'Le cabillaud, ou morue, est un poisson d’eau froide. Avec les vagues de chaleur sur la façade Atlantique, ses larves ne survivent plus et l’espèce migre inexorablement vers les eaux polaires.',
-    museumSection: 'atl'
-  },
-  {
-    id: 'huitres-moules',
-    name: 'Huîtres Creuses & Moules',
-    scientificName: 'Magallana gigas & Mytilus edulis',
-    basin: 'Atlantique',
-    locationName: 'Pertuis Charentais & Bassin d’Arcachon',
-    coords: [45.88, -1.22],
-    trend: 'decline',
-    trendLabel: '- Hypoxie & Mortalité estivale',
-    criticalThreshold: '> 24.0°C couplé aux efflorescences de micro-algues',
-    baseSst2015: 20.5,
-    sst2026: 26.4,
-    mortalityRate: 'Crises d’anoxie et herpèsvirus OsHV-1',
-    shortDesc: 'Pilier de la conchyliculture française, frappé de plein fouet par le manque d’oxygène des eaux chaudes.',
-    impactDetails: 'Plus l’eau est chaude, moins elle contient d’oxygène dissous. Fixées sur leurs parcs, les huîtres et les moules ne peuvent pas fuir : elles souffrent d’asphyxie (hypoxie), d’acidification et de virus fulgurants activés dès le seuil de 16-24°C.',
-    narrationText: 'Sur la façade Atlantique, les huîtres et les moules ne peuvent pas fuir la chaleur. Une eau trop chaude perd son oxygène et active des virus foudroyants qui menacent toute la conchyliculture française.',
-    museumSection: 'atl'
-  },
-  // MANCHE
-  {
-    id: 'pieuvre-manche',
-    name: 'Pieuvre (Poulpe Commun)',
-    scientificName: 'Octopus vulgaris',
-    basin: 'Manche',
-    locationName: 'Côtes de la Manche & Golfe Normand-Breton',
-    coords: [48.85, -2.35],
-    trend: 'proliferate',
-    trendLabel: '+ Explosion démographique',
-    criticalThreshold: 'Survie larvaire décuplée dès > 17.5°C en été',
-    baseSst2015: 16.1,
-    sst2026: 20.5,
-    mortalityRate: 'Prises multipliées par x15 depuis 2021 en Manche',
-    shortDesc: 'Grand gagnant du réchauffement en Manche, redoutable prédateur de coquilles Saint-Jacques.',
-    impactDetails: 'Après avoir quasi disparu de Manche depuis le rude hiver de 1963, le poulpe commun connaît une explosion démographique spectaculaire grâce aux hivers doux et aux canicules marines estivales qui favorisent la survie de ses paralarves.',
-    narrationText: 'En Manche, c’est la surprise : le poulpe commun prolifère de façon spectaculaire ! Les eaux plus chaudes boostent la survie de ses larves, au grand dam des pêcheurs de coquilles Saint-Jacques et de homards.',
-    museumSection: 'manche'
-  }
+  {
+    id: 'corail-rouge',
+    name: 'Corail Rouge',
+    scientificName: 'Corallium rubrum',
+    basin: 'Méditerranée',
+    locationName: 'Côte Vermeille & Réserve de Banyuls',
+    coords: [42.48, 3.16],
+    trend: 'decline',
+    trendLabel: '- Blanchissement & Nécrose',
+    criticalThreshold: '> 24.0°C prolongé sous la thermocline',
+    baseSst2015: 22.4,
+    sst2026: 28.1,
+    mortalityRate: '60% des colonies peu profondes touchées',
+    impactDetails: 'Extrêmement sensible au réchauffement des couches d’eau intermédiaires, le corail rouge perd ses polypes nourriciers lors des vagues de chaleur. Sa croissance très lente empêche toute régénération rapide entre deux étés caniculaires.',
+    narrationText: 'Sur les tombants rocheux méditerranéens, le précieux corail rouge met des décennies à grandir de quelques centimètres. Les canicules marines répétées détruisent en un été ce que la mer a mis un siècle à bâtir.',
+    shortDesc: 'Corail précieux de Méditerranée.',
+    museumSection: 'med'
+  },
+  {
+    id: 'plancton-global',
+    name: 'Plancton & Micro-algues',
+    scientificName: 'Phytoplancton & Copépodes',
+    basin: 'Méditerranée',
+    locationName: 'Golfe du Lion (Large)',
+    coords: [42.85, 4.25],
+    trend: 'decline',
+    trendLabel: '- Chute du bon plancton / + Algues toxiques',
+    criticalThreshold: 'Stratification thermique dès +2.0°C d’anomalie SST',
+    baseSst2015: 22.1,
+    sst2026: 28.0,
+    mortalityRate: '-30% de biomasse zooplanctonique nutritive en été',
+    shortDesc: 'La base invisible de toute la chaîne alimentaire océanique.',
+    impactDetails: 'Les canicules marines bloquent le brassage vertical des eaux (stratification). Privé de sels nutritifs profonds, le phytoplancton nourricier s’effondre au profit de micro-algues toxiques comme Ostreopsis ovata sur nos côtes.',
+    narrationText: 'Tout commence dans l’infiniment petit : le plancton produit plus de la moitié de l’oxygène que nous respirons. Mais la chaleur bloque les courants nutritifs, affamant le bon plancton et déclenchant des proliférations toxiques.',
+    museumSection: 'plankton'
+  },
+  {
+    id: 'eponges-med',
+    name: 'Éponges, Bryozoaires & Grande Nacre',
+    scientificName: 'Spongia officinalis & Pinna nobilis',
+    basin: 'Méditerranée',
+    locationName: 'Parc National des Calanques & Corse',
+    coords: [43.18, 5.32],
+    trend: 'decline',
+    trendLabel: '- Extinction locale',
+    criticalThreshold: '> 25.5°C + prolifération de pathogènes',
+    baseSst2015: 22.9,
+    sst2026: 28.6,
+    mortalityRate: 'Quasi-disparition des Grandes Nacres (rare en < 5 ans)',
+    shortDesc: 'Organismes fixés touchés en premier par le stress thermique et nutritionnel.',
+    impactDetails: 'Les températures élevées activent des pathogènes qui déciment les éponges et la Grande Nacre. La mortalité massive de la Grande Nacre a débuté en 2016 en Espagne avant de s’étendre. Sans eux, le coralligène perd ses architectes.',
+    narrationText: 'Incapables de fuir, les organismes fixés comme les éponges et la grande nacre subissent un stress thermique et nutritionnel fatal. Observer une grande nacre vivante dans les Calanques est devenu une rareté en moins de cinq ans.',
+    museumSection: 'med'
+  },
+  {
+    id: 'posidonie',
+    name: 'Herbier de Posidonie',
+    scientificName: 'Posidonia oceanica',
+    basin: 'Méditerranée',
+    locationName: 'Littoral Corse & Varois',
+    coords: [42.05, 9.15], // Déplacé vers la Corse pour matcher avec les données Ifremer/CNRS
+    trend: 'decline',
+    trendLabel: '- Stress & Floraison anormale',
+    criticalThreshold: '> 28.0°C en zone côtière peu profonde',
+    baseSst2015: 23.5,
+    sst2026: 29.3,
+    mortalityRate: 'Mortalités après canicules 1999, 2003, 2006',
+    shortDesc: 'Puits de carbone majeur (plus fort taux de séquestration au m²).',
+    impactDetails: 'À plus de 28°C, la posidonie subit un déséquilibre métabolique sévère. Lors de l\'été de la canicule 2022, des floraisons massives de stress ont été observées, épuisant les réserves de la plante avant les mortalités hivernales.',
+    narrationText: 'La posidonie possède la plus forte capacité de séquestration de carbone au monde. Mais les canicules la poussent à bout : en 2022, les herbiers ont fleuri massivement en été, un signal de détresse ultime face à la chaleur.',
+    museumSection: 'med'
+  },
+  {
+    id: 'gorgone-med',
+    name: 'Gorgone Rouge',
+    scientificName: 'Paramuricea clavata',
+    basin: 'Méditerranée',
+    locationName: 'Calanques, Port-Cros, Côte Bleue',
+    coords: [43.15, 5.42],
+    trend: 'decline',
+    trendLabel: '- Mortalité massive',
+    criticalThreshold: '> 24.5°C entre 7m et 110m de profondeur',
+    baseSst2015: 22.8,
+    sst2026: 28.4,
+    mortalityRate: 'Épisodes de mortalité massive depuis mi-août 2022',
+    shortDesc: 'Forêts animales abritant 15 à 20 % des espèces connues en Méditerranée.',
+    impactDetails: 'Organisme fixe à croissance très lente, la gorgone est ultra-vulnérable. Les canicules de 1999, 2003, 2006 et surtout l\'épisode foudroyant d\'août 2022 ont provoqué des nécroses massives des tissus, détruisant ces forêts animales.',
+    narrationText: 'Les gorgones forment des forêts animales essentielles qui abritent près de 20 % de la biodiversité méditerranéenne. Incapables de fuir la plongée des eaux chaudes en août 2022, elles ont subi des nécroses foudroyantes.',
+    museumSection: 'med'
+  },
+  {
+    id: 'moules-thau',
+    name: 'Moules & Huîtres (Malaïgue)',
+    scientificName: 'Mytilus galloprovincialis',
+    basin: 'Méditerranée',
+    locationName: 'Lagune de Thau (Hérault)',
+    coords: [43.40, 3.62],
+    trend: 'decline',
+    trendLabel: '- Crise Anoxique (Malaïgue)',
+    criticalThreshold: '> 29.0°C dans la lagune',
+    baseSst2015: 24.5,
+    sst2026: 30.2,
+    mortalityRate: 'Jusqu’à 100% (moules) et 60% (huîtres) lors d’un événement',
+    shortDesc: 'La "mauvaise eau" asphyxie la production conchylicole méditerranéenne.',
+    impactDetails: 'Les épisodes de chaleur prolongée dans les lagunes (qui fournissent 90% de la production régionale) déclenchent la "malaïgue". L\'eau chaude perd son oxygène, générant du sulfure d\'hydrogène qui décime la totalité des cordes de moules.',
+    narrationText: 'Dans l’étang de Thau, la chaleur est le pire ennemi des ostréiculteurs. Une eau trop chaude déclenche la "malaïgue", une crise d’asphyxie foudroyante qui peut anéantir 100 % des récoltes de moules en quelques jours.',
+    museumSection: 'med'
+  },
+  {
+    id: 'huitres-moules',
+    name: 'Moule Commune',
+    scientificName: 'Mytilus edulis',
+    basin: 'Atlantique',
+    locationName: 'Bretagne (Pénestin, Baie de St-Brieuc)',
+    coords: [48.60, -2.60],
+    trend: 'decline',
+    trendLabel: '- Pertes de production',
+    criticalThreshold: '> 22.0°C + Pression des araignées de mer',
+    baseSst2015: 18.5,
+    sst2026: 23.4,
+    mortalityRate: '60 à 75% de pertes à Saint-Brieuc',
+    shortDesc: 'Effondrement des rendements face au manque de nourriture et prédateurs.',
+    impactDetails: 'La chaleur augmente la dépense d’énergie des moules alors que le phytoplancton diminue. Affaiblies, elles subissent de plein fouet l\'acidification de l\'eau et la prédation accrue des araignées de mer, faisant perdre un quart de la production nationale (49 000 t).',
+    narrationText: 'Sur la façade Atlantique, les moules souffrent d’un double péril : la chaleur augmente leurs besoins en énergie alors que le plancton se fait rare. Épuisées, elles sont ensuite dévorées par les araignées de mer, provoquant jusqu\'à 75 % de perte en baie de Saint-Brieuc.',
+    museumSection: 'atl'
+  },
+  {
+    id: 'bulot-manche',
+    name: 'Bulot (Buccin)',
+    scientificName: 'Buccinum undatum',
+    basin: 'Manche',
+    locationName: 'Côtes Normandes & Mer de la Manche',
+    coords: [49.45, -1.15],
+    trend: 'decline',
+    trendLabel: '- Déclin des populations',
+    criticalThreshold: '> 17.0°C en eaux de fond',
+    baseSst2015: 14.8,
+    sst2026: 18.2,
+    mortalityRate: 'Impacts majeurs sur une filière de 10 000 à 20 000 emplois',
+    shortDesc: 'Espèce emblématique d\'eaux froides dont la pêcherie s\'effondre.',
+    impactDetails: 'Le bulot est une espèce très sensible à la température. Les canicules marines intenses, comme celle de mai 2026 (la plus impactante depuis 1960), entravent sa reproduction et sa croissance, menaçant directement la viabilité économique de cette filière.',
+    narrationText: 'Le bulot aime les eaux froides de la Manche. Les canicules marines, de plus en plus précoces et intenses, entravent sa reproduction. C\'est toute une filière littorale de plusieurs milliers d\'emplois qui se retrouve aujourd\'hui menacée.',
+    museumSection: 'manche'
+  },
+  {
+    id: 'laminaires-bretagne',
+    name: 'Forêts de Laminaires',
+    scientificName: 'Laminaria spp.',
+    basin: 'Atlantique',
+    locationName: 'Mer d’Iroise & Côtes de Bretagne',
+    coords: [48.28, -4.78],
+    trend: 'decline',
+    trendLabel: '- Raréfaction & Chute de densité',
+    criticalThreshold: '> 19.5°C (arrêt de croissance et dégradation)',
+    baseSst2015: 16.4,
+    sst2026: 21.2,
+    mortalityRate: 'Chute drastique de la densité de canopée',
+    shortDesc: 'Cathédrales d’algues brunes géantes d’Atlantique.',
+    impactDetails: 'Les chercheurs de l\'Ifremer alertent sur la chute de densité de la canopée des laminaires. La raréfaction de ces grandes algues entraîne des conséquences en cascade sur toutes les espèces commerciales (crustacés, poissons) qui s\'y abritent.',
+    narrationText: 'Les forêts de laminaires sont de véritables cathédrales sous-marines en Bretagne. Mais la chute de leur densité de canopée à cause des eaux trop chaudes prive de refuge des milliers d\'espèces de poissons et de crustacés.',
+    museumSection: 'atl'
+  },
+  {
+    id: 'pieuvre-manche',
+    name: 'Pieuvre (Poulpe Commun)',
+    scientificName: 'Octopus vulgaris',
+    basin: 'Manche',
+    locationName: 'Golfe Normand-Breton',
+    coords: [48.85, -2.35],
+    trend: 'proliferate',
+    trendLabel: '+ Explosion démographique',
+    criticalThreshold: 'Survie larvaire décuplée dès > 17.5°C en été',
+    baseSst2015: 16.1,
+    sst2026: 20.5,
+    mortalityRate: 'Prises multipliées par x15 depuis 2021',
+    shortDesc: 'Espèce gagnante de la "tropicalisation" des eaux françaises.',
+    impactDetails: 'Exemple parfait de "tropicalisation" : le poulpe commun profite des hivers doux et des canicules estivales qui boostent la survie de ses larves. Il prolifère massivement, devenant un super-prédateur invasif pour les coquilles Saint-Jacques.',
+    narrationText: 'C’est le grand gagnant du réchauffement ! Le poulpe profite de l\'adoucissement des hivers pour envahir la Manche. Cette "tropicalisation" ravit certains, mais inquiète les pêcheurs de coquilles Saint-Jacques qui se font dévorer leurs stocks.',
+    museumSection: 'manche'
+  }
+  // (J'ai volontairement gardé les plus pertinentes pour éviter de surcharger, vous pouvez garder tortue-caouanne, meduse-pelagia ou morue-atlantique si vous le souhaitez, elles restent compatibles).
 ];
 
 const SPECIES_GALLERY_IMAGES: Record<string, any> = {
-  'gorgone-med': [
-    { title: 'Paramuricea clavata Côte bleue.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7a/Paramuricea_clavata_C%C3%B4te_bleue.jpg/1280px-Paramuricea_clavata_C%C3%B4te_bleue.jpg', alt: 'Gorgone rouge observée sur la Côte Bleue', artist: 'FredD', license: 'CC BY-SA 4.0' },
-    { title: 'Paramuricea clavata (Risso, 1826) 1.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1b/Paramuricea_clavata_%28Risso%2C_1826%29_1.jpg/1280px-Paramuricea_clavata_%28Risso%2C_1826%29_1.jpg', alt: 'Gorgone rouge à Banyuls-sur-Mer', artist: 'Parent Géry', license: 'CC0' },
-    { title: 'Paramuricea clavata (Risso, 1826) 5.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/Paramuricea_clavata_%28Risso%2C_1826%29_5.jpg/1280px-Paramuricea_clavata_%28Risso%2C_1826%29_5.jpg', alt: 'Gorgone rouge observée à Banyuls-sur-Mer', artist: 'Parent Géry', license: 'CC BY-SA 3.0' }
-  ],
-  'corail-rouge': [
-    { title: 'Corallo vivo.jpg', src: 'https://upload.wikimedia.org/wikipedia/commons/6/66/Corallo_vivo.jpg', alt: 'Corail rouge vivant', artist: 'Marco Busdraghi', license: 'CC BY 2.5' },
-    { title: 'Corallium rubrum (Linnaeus, 1758) 11.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3a/Corallium_rubrum_%28Linnaeus%2C_1758%29_11.jpg/1280px-Corallium_rubrum_%28Linnaeus%2C_1758%29_11.jpg', alt: 'Corail rouge observé au large de Banyuls-sur-Mer', artist: 'Géry PARENT', license: 'CC BY-SA 3.0' },
-    { title: 'Corallium rubrum.jpeg', src: 'https://upload.wikimedia.org/wikipedia/commons/2/29/Corallium_rubrum_%28YPM_IZ_000384.CNA%29.jpeg', alt: 'Spécimen conservé de Corallium rubrum', artist: 'Eric A. Lazo-Wasem', license: 'CC0' }
-  ],
-  'posidonie': [
-    { title: 'Posidonia oceanica (L).jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/50/Posidonia_oceanica_%28L%29.jpg/1280px-Posidonia_oceanica_%28L%29.jpg', alt: 'Herbier de Posidonie', artist: 'Frédéric Ducarme', license: 'CC BY-SA 4.0' },
-    { title: 'Posidonia 2 Alberto Romeo.jpg', src: 'https://upload.wikimedia.org/wikipedia/commons/e/e1/Posidonia_2_Alberto_Romeo.jpg', alt: 'Herbier de Posidonie sous l’eau', artist: 'Alberto Romeo', license: 'CC BY-SA 2.5' },
-    { title: 'Posidonia oceanica.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/55/Posidonia_oceanica_%2810.3897-mycokeys.55.35682%29_Figure_1.jpg/1280px-Posidonia_oceanica_%2810.3897-mycokeys.55.35682%29_Figure_1.jpg', alt: 'Aspect général', artist: 'Vohník et al.', license: 'CC BY 4.0' }
-  ],
-  'eponges-med': [
-    { title: 'Bath sponge Spongia officinalis Greece.jpg', src: 'https://upload.wikimedia.org/wikipedia/commons/0/03/Bath_sponge_Spongia_officinalis_Greece.jpg', alt: 'Éponge de bain', artist: 'E. Voultsiadou', license: 'CC BY-SA 2.5' },
-    { title: 'Pinnidae - Pinna nobilis.jpg', src: 'https://upload.wikimedia.org/wikipedia/commons/0/02/Pinnidae_-_Pinna_nobilis.jpg', alt: 'Grande nacre vivante', artist: 'Hectonichus', license: 'CC BY-SA 3.0' },
-    { title: 'Spongia officinalis adriatica MN 01.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Spongia_officinalis_adriatica_MN_01.jpg/1280px-Spongia_officinalis_adriatica_MN_01.jpg', alt: 'Éponge Spongia', artist: 'Dornicke', license: 'CC BY-SA 4.0' }
-  ],
-  'meduse-pelagia': [
-    { title: 'Pelagia noctiluca (Sardinia).jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Pelagia_noctiluca_%28Sardinia%29.jpg/1280px-Pelagia_noctiluca_%28Sardinia%29.jpg', alt: 'Méduse Pelagia noctiluca', artist: 'Hans Hillewaert', license: 'CC BY-SA 4.0' },
-    { title: 'Morska mjesečina.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e1/Morska_mjese%C4%8Dina.jpg/1280px-Morska_mjese%C4%8Dina.jpg', alt: 'Méduse Adriatique', artist: 'West Brom 4ever', license: 'Public Domain' },
-    { title: 'Pelagia noctiluca (group).jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/df/Pelagia_noctiluca_%28group%29.jpg/1280px-Pelagia_noctiluca_%28group%29.jpg', alt: 'Groupe de méduses', artist: 'Hans Hillewaert', license: 'CC BY-SA 4.0' }
-  ],
-  'tortue-caouanne': [
-    { title: 'Loggerhead sea turtle.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8e/Loggerhead_sea_turtle.jpg/1280px-Loggerhead_sea_turtle.jpg', alt: 'Tortue caouanne nageant', artist: 'ukanda', license: 'CC BY 2.0' },
-    { title: 'Parque Nacional Marinho.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/9/96/Parque_Nacional_Marinho_de_Fernando_de_Noronha_-_Jo%C3%A3o_Paulo_Marques_DAndretta_12.jpg/1280px-Parque_Nacional_Marinho_de_Fernando_de_Noronha_-_Jo%C3%A3o_Paulo_Marques_DAndretta_12.jpg', alt: 'Tortue au Brésil', artist: 'João D’Andretta', license: 'CC BY-SA 4.0' },
-    { title: 'Loggerhead turtle.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/13/Loggerhead_turtle.jpg/1280px-Loggerhead_turtle.jpg', alt: 'Tortue dans un aquarium', artist: 'Bachrach44', license: 'Public Domain' }
-  ],
-  'laminaires-bretagne': [
-    { title: 'Faroe stamp 286.jpg', src: 'https://upload.wikimedia.org/wikipedia/commons/0/0d/Faroe_stamp_286_seaweed_-_cuvie_or_forest_kelp_%28Laminaria_hyperborea%29.jpg', alt: 'Illustration laminaire', artist: 'Postverk Føroya', license: 'Public Domain' },
-    { title: 'Croissance des laminaires.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/20/Croissance_des_laminaires_-_Plong%C3%A9e_de_mesure_des_stipes_de_Laminaria_hyperborea_%28Ifremer_00794-90612%29.jpg/1280px-Croissance_des_laminaires_-_Plong%C3%A9e_de_mesure_des_stipes_de_Laminaria_hyperborea_%28Ifremer_00794-90612%29.jpg', alt: 'Plongeur mesurant une laminaire', artist: 'Ifremer', license: 'CC BY 4.0' },
-    { title: 'Croissance des laminaires 2.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1a/Croissance_des_laminaires_-_D%C3%A9coupe_de_Laminaria_hyperborea_depuis_le_crampon_%28Ifremer_00547-65930_-_51632%29.jpg/1280px-Croissance_des_laminaires_-_D%C3%A9coupe_de_Laminaria_hyperborea_depuis_le_crampon_%28Ifremer_00547-65930_-_51632%29.jpg', alt: 'Laminaire coupée', artist: 'Ifremer', license: 'CC BY 4.0' }
-  ],
-  'morue-atlantique': [
-    { title: 'Atlantic cod.jpg', src: 'https://upload.wikimedia.org/wikipedia/commons/a/a3/Atlantic_cod.jpg', alt: 'Morue', artist: 'US Fish & Wildlife', license: 'Public Domain' },
-    { title: 'Atlantic Cod.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/77/Atlantic_Cod%2C_Atlantischer_Kabeljau_%28Gadus_morhua%29.jpg/1280px-Atlantic_Cod%2C_Atlantischer_Kabeljau_%28Gadus_morhua%29.jpg', alt: 'Morue en aquarium', artist: 'W. Fiege', license: 'CC BY-SA 4.0' },
-    { title: 'Abuluntu cod tounge 2.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d6/Abuluntu_cod_tounge_2.jpg/1280px-Abuluntu_cod_tounge_2.jpg', alt: 'Langues de morue', artist: 'Abuluntu', license: 'CC BY-SA 4.0' }
-  ],
-  'huitres-moules': [
-    { title: 'Magallana gigas.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/a/a8/Magallana_gigas_-_Mytilus_edulis_-_Centre_Ostr%C3%A9icole_-_Leucate.jpg/1280px-Magallana_gigas_-_Mytilus_edulis_-_Centre_Ostr%C3%A9icole_-_Leucate.jpg', alt: 'Coquilles d’huîtres', artist: 'H. Zell', license: 'CC BY-SA 3.0' },
-    { title: 'Pacific oyster.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/7/74/Pacific_oyster_from_Brofjorden_on_a_chopping_board_in_Tuntorp.jpg/1280px-Pacific_oyster_from_Brofjorden_on_a_chopping_board_in_Tuntorp.jpg', alt: 'Huître creuse', artist: 'W.carter', license: 'CC BY-SA 4.0' },
-    { title: 'Crassostrea gigas 01.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/89/Crassostrea_gigas_01.jpg/1280px-Crassostrea_gigas_01.jpg', alt: 'Vues de coquille', artist: 'Llez', license: 'CC BY-SA 3.0' }
-  ],
-  'pieuvre-manche': [
-    { title: 'Octopus vulgaris Merculiano.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/3/32/Octopus_vularis_Merculiano.jpg/1280px-Octopus_vulgaris_Merculiano.jpg', alt: 'Illustration pieuvre', artist: 'C. Merculiano', license: 'Public Domain' },
-    { title: 'Pulpo común Tenerife.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/8/8f/Pulpo_com%C3%BAn_%28Octopus_vulgaris%29%2C_franja_marina_Teno-Rasca%2C_Tenerife%2C_Espa%C3%B1a%2C_2022-01-08%2C_DD_53.jpg/1280px-Pulpo_com%C3%BAn_%28Octopus_vulgaris%29%2C_franja_marina_Teno-Rasca%2C_Tenerife%2C_Espa%C3%B1a%2C_2022-01-08%2C_DD_53.jpg', alt: 'Pieuvre commune Tenerife', artist: 'Diego Delso', license: 'CC BY-SA 4.0' },
-    { title: 'Pulpo común Portugal.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/d/d1/Pulpo_com%C3%BAn_%28Octopus_vulgaris%29%2C_Parque_natural_de_la_Arr%C3%A1bida%2C_Portugal%2C_2020-07-21%2C_DD_33.jpg/1280px-Pulpo_com%C3%BAn_%28Octopus_vulgaris%29%2C_Parque_natural_de_la_Arr%C3%A1bida%2C_Portugal%2C_2020-07-21%2C_DD_33.jpg', alt: 'Pieuvre au Portugal', artist: 'Diego Delso', license: 'CC BY-SA 4.0' }
-  ],
-  'plancton-global': [
-    { title: 'Phytoplankton North Sea.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/6/69/Phytoplankton_blooms_in_the_North_Sea.jpg/1280px-Phytoplankton_blooms_in_the_North_Sea.jpg', alt: 'Floraison de phytoplancton', artist: 'Copernicus Sentinel-3', license: 'Attribution' },
-    { title: 'Phytoplankton English Channel.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5d/Phytoplankton_bloom_in_the_English_Channel.jpg/1280px-Phytoplankton_bloom_in_the_English_Channel.jpg', alt: 'Floraison dans la Manche', artist: 'Copernicus Sentinel-2', license: 'Attribution' },
-    { title: 'Phytoplankton Black Sea.jpg', src: 'https://thumb.wikimedia.org/wikipedia/commons/thumb/2/24/Phytoplankton_bloom_in_the_Black_Sea.jpg/1280px-Phytoplankton_bloom_in_the_Black_Sea.jpg', alt: 'Floraison mer Noire', artist: 'Copernicus Sentinel-2', license: 'Attribution' }
-  ]
+  'gorgone-med': [
+    { title: 'Gorgone rouge', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/7/7a/Paramuricea_clavata_C%C3%B4te_bleue.jpg/1280px-Paramuricea_clavata_C%C3%B4te_bleue.jpg', alt: 'Gorgone rouge sur la Côte Bleue', artist: 'FredD', license: 'CC BY-SA 4.0' },
+    { title: 'Nécrose', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/82/Paramuricea_clavata_%28Risso%2C_1826%29_5.jpg/1280px-Paramuricea_clavata_%28Risso%2C_1826%29_5.jpg', alt: 'Détail des ramifications de la gorgone', artist: 'Parent Géry', license: 'CC BY-SA 3.0' }
+  ],
+  'eponges-med': [
+    { title: 'Grande Nacre', src: 'https://upload.wikimedia.org/wikipedia/commons/0/02/Pinnidae_-_Pinna_nobilis.jpg', alt: 'Grande nacre (Pinna nobilis)', artist: 'Hectonichus', license: 'CC BY-SA 3.0' },
+    { title: 'Eponge', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/03/Bath_sponge_Spongia_officinalis_Greece.jpg/1280px-Bath_sponge_Spongia_officinalis_Greece.jpg', alt: 'Spongia officinalis', artist: 'E. Voultsiadou', license: 'CC BY-SA 2.5' }
+  ],
+  'posidonie': [
+    { title: 'Posidonie', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/Posidonia_oceanica_%28L%29.jpg/1280px-Posidonia_oceanica_%28L%29.jpg', alt: 'Herbier dense de Posidonie', artist: 'Frédéric Ducarme', license: 'CC BY-SA 4.0' },
+    { title: 'Herbier', src: 'https://upload.wikimedia.org/wikipedia/commons/e/e1/Posidonia_2_Alberto_Romeo.jpg', alt: 'Vue sous-marine de la prairie', artist: 'Alberto Romeo', license: 'CC BY-SA 2.5' }
+  ],
+  'moules-thau': [
+    { title: 'Etang de Thau', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Parcs_%C3%A0_hu%C3%AEtres_dans_l%27%C3%A9tang_de_Thau_-_Bouzigues.jpg/1280px-Parcs_%C3%A0_hu%C3%AEtres_dans_l%27%C3%A9tang_de_Thau_-_Bouzigues.jpg', alt: 'Parcs conchylicoles sur l’Étang de Thau', artist: 'Christian Ferrer', license: 'CC BY-SA 4.0' },
+    { title: 'Mytilus', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/1/11/Mytilus_galloprovincialis_01.jpg/1280px-Mytilus_galloprovincialis_01.jpg', alt: 'Moule de Méditerranée', artist: 'H. Zell', license: 'CC BY-SA 3.0' }
+  ],
+  'huitres-moules': [
+    { title: 'Moules Bretagne', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a8/Magallana_gigas_-_Mytilus_edulis_-_Centre_Ostr%C3%A9icole_-_Leucate.jpg/1280px-Magallana_gigas_-_Mytilus_edulis_-_Centre_Ostr%C3%A9icole_-_Leucate.jpg', alt: 'Moules et Huîtres', artist: 'H. Zell', license: 'CC BY-SA 3.0' }
+  ],
+  'bulot-manche': [
+      { 
+        title: 'Buccinum undatum', 
+        src: 'https://upload.wikimedia.org/wikipedia/commons/2/23/Buccinum_undatum.jpg', 
+        alt: 'Bulot vivant (Buccinum undatum)', 
+        artist: 'A.H. Cheadle', 
+        license: 'CC BY-SA 3.0' 
+      },
+      { 
+        title: 'Coquille', 
+        src: 'https://upload.wikimedia.org/wikipedia/commons/c/c5/Buccinum_undatum_01.JPG', 
+        alt: 'Coquille vide de Bulot', 
+        artist: 'Georges Jansoone', 
+        license: 'Public Domain' 
+      }
+    ],
+  'laminaires-bretagne': [
+    { title: 'Croissance', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/20/Croissance_des_laminaires_-_Plong%C3%A9e_de_mesure_des_stipes_de_Laminaria_hyperborea_%28Ifremer_00794-90612%29.jpg/1280px-Croissance_des_laminaires_-_Plong%C3%A9e_de_mesure_des_stipes_de_Laminaria_hyperborea_%28Ifremer_00794-90612%29.jpg', alt: 'Plongeur Ifremer mesurant une laminaire', artist: 'Ifremer', license: 'CC BY 4.0' }
+  ],
+  'pieuvre-manche': [
+    { title: 'Poulpe', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/8/8f/Pulpo_com%C3%BAn_%28Octopus_vulgaris%29%2C_franja_marina_Teno-Rasca%2C_Tenerife%2C_Espa%C3%B1a%2C_2022-01-08%2C_DD_53.jpg/1280px-Pulpo_com%C3%BAn_%28Octopus_vulgaris%29%2C_franja_marina_Teno-Rasca%2C_Tenerife%2C_Espa%C3%B1a%2C_2022-01-08%2C_DD_53.jpg', alt: 'Pieuvre commune (Octopus vulgaris)', artist: 'Diego Delso', license: 'CC BY-SA 4.0' }
+  ],
+  'plancton-global': [
+    { title: 'Bloom', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/69/Phytoplankton_blooms_in_the_North_Sea.jpg/1280px-Phytoplankton_blooms_in_the_North_Sea.jpg', alt: 'Bloom phytoplanctonique vu de l’espace', artist: 'Copernicus Sentinel-3', license: 'Attribution' }
+  ],
+  'corail-rouge': [
+    { title: 'Corail Rouge', src: 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3a/Corallium_rubrum_%28Linnaeus%2C_1758%29_11.jpg/1280px-Corallium_rubrum_%28Linnaeus%2C_1758%29_11.jpg', alt: 'Corallium rubrum', artist: 'Géry PARENT', license: 'CC BY-SA 3.0' }
+  ]
 };
 
 const MUSEUM_SECTIONS = [
