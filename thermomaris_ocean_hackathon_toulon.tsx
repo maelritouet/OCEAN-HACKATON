@@ -1201,45 +1201,61 @@ const filteredSpecies = useMemo(() => {
     };
   }, [activeMode, isMuseumPlaying, museumStepIndex, activeMuseumSection, voiceOverOn]);
 
-  const generateCsvContent = () => {
-    const headers = [
-      'ID_Espece', 'Nom_Commun', 'Nom_Scientifique', 'Bassin_Maritime', 'Zone_Observation',
-      'Latitude', 'Longitude', 'Impact_Canicule', 'Seuil_Thermique_Critique',
-      'SST_2015_C', 'SST_Canicule_2022_C', `SST_Dynamique_API_${dynamicTelemetry?.year || 2026}_C`
-    ];
-    const rows = SPECIES_DATA.map((sp) => {
-      return [
-        sp.id, `"${sp.name}"`, `"${sp.scientificName}"`, `"${sp.basin}"`, `"${sp.locationName}"`,
-        sp.coords[0], sp.coords[1], sp.trend === 'decline' ? 'DECLIN_MORTALITE (-)' : 'PROLIFERATION_EXPANSION (+)',
-        `"${sp.criticalThreshold}"`, sp.baseSst2015, sp.sst2022, 
-        (sp.baseSst2015 + (sp.sst2026 - sp.baseSst2015) * heatFactor).toFixed(1)
-      ].join(',');
-    });
-    return [headers.join(','), ...rows].join('\n');
-  };
+const generateCsvContent = () => {
+    // Si on est en mode journalier, on indique la date exacte, sinon la plage de dates
+    const dateInfo = colorMode === 'daily' ? `Date_Jour: ${dynamicTelemetry?.date || selectedMapDate}` : `Periode: ${apiStartDate} au ${apiEndDate}`;
 
-  const generateJsonContent = () => {
-    const payload = {
-      project: 'ThermoMaris - Ocean Hackathon',
-      generatedAt: new Date().toISOString(),
-      liveCopernicusPipeline: livePipeline,
-      speciesIndicators: SPECIES_DATA.map((sp) => ({
-        id: sp.id,
-        name: sp.name,
-        scientificName: sp.scientificName,
-        basin: sp.basin,
-        coordinates: { lat: sp.coords[0], lon: sp.coords[1] },
-        responseToMarineHeatwave: sp.trend === 'decline' ? '- Disparaît / Déclin' : '+ Apparaît / Prolifère',
-        criticalThreshold: sp.criticalThreshold,
-        illustrativeTelemetry: {
-          sst2015: sp.baseSst2015,
-          sst2022: sp.sst2022,
-          sstCurrentApi: +(sp.baseSst2015 + (sp.sst2026 - sp.baseSst2015) * heatFactor).toFixed(1),
-        }
-      }))
-    };
-    return JSON.stringify(payload, null, 2);
-  };
+    const headers = [
+      'ID_Espece', 'Nom_Commun', 'Nom_Scientifique', 'Bassin_Maritime', 'Zone_Observation',
+      'Latitude', 'Longitude', 'Impact_Canicule', 'Seuil_Thermique_Critique',
+      'SST_2015_C', `SST_Observee_${colorMode === 'daily' ? (dynamicTelemetry?.date || 'Jour') : 'Moyenne_Periode'}_C`
+    ];
+    
+    const rows = SPECIES_DATA.map((sp) => {
+      // Récupère la vraie SST dynamique de la cellule la plus proche sur la carte
+      const currentSst = getDynamicSpeciesSst(sp.coords);
+      return [
+        sp.id, `"${sp.name}"`, `"${sp.scientificName}"`, `"${sp.basin}"`, `"${sp.locationName}"`,
+        sp.coords[0], sp.coords[1], sp.trend === 'decline' ? 'DECLIN_MORTALITE (-)' : 'PROLIFERATION_EXPANSION (+)',
+        `"${sp.criticalThreshold}"`, sp.baseSst2015, currentSst.toFixed(2)
+      ].join(',');
+    });
+
+    return [`# Export ThermoMaris | ${dateInfo}`, headers.join(','), ...rows].join('\n');
+  };
+
+const generateJsonContent = () => {
+    const payload = {
+      project: 'ThermoMaris - Ocean Hackathon',
+      generatedAt: new Date().toISOString(),
+      filterMode: colorMode,
+      selectedDate: colorMode === 'daily' ? (dynamicTelemetry?.date || selectedMapDate) : null,
+      selectedPeriod: colorMode === 'average' ? { start: apiStartDate, end: apiEndDate } : null,
+      liveCopernicusTelemetry: dynamicTelemetry,
+      liveCopernicusPipeline: livePipeline,
+      speciesIndicators: SPECIES_DATA.map((sp) => {
+        const currentSst = getDynamicSpeciesSst(sp.coords);
+        const hobdayStatus = getHobdayCategory(currentSst, dynamicTelemetry?.climatology || 20.0, dynamicTelemetry?.threshold || 22.0);
+        
+        return {
+          id: sp.id,
+          name: sp.name,
+          scientificName: sp.scientificName,
+          basin: sp.basin,
+          coordinates: { lat: sp.coords[0], lon: sp.coords[1] },
+          responseToMarineHeatwave: sp.trend === 'decline' ? '- Disparaît / Déclin' : '+ Apparaît / Prolifère',
+          criticalThreshold: sp.criticalThreshold,
+          telemetryAtSelection: {
+            sstBaseline2015: sp.baseSst2015,
+            sstObserved: +currentSst.toFixed(2),
+            hobdayCategory: hobdayStatus.name,
+            intensityMultiple: hobdayStatus.mult
+          }
+        };
+      })
+    };
+    return JSON.stringify(payload, null, 2);
+  };
 
   const getDynamicSpeciesSst = (coords: [number, number]) => {
     if (!liveCells || liveCells.length === 0) {
@@ -1259,21 +1275,24 @@ const filteredSpecies = useMemo(() => {
     return closest.sst;
   };
 
-  const triggerDownload = (format: string) => {
-    const content = format === 'csv' ? generateCsvContent() : generateJsonContent();
-    const mimeType = format === 'csv' ? 'text/csv;charset=utf-8;' : 'application/json;charset=utf-8;';
-    const filename = `copernicus_nc_canicules_france_${dynamicTelemetry?.year || 2026}.${format}`;
+const triggerDownload = (format: string) => {
+    const content = format === 'csv' ? generateCsvContent() : generateJsonContent();
+    const mimeType = format === 'csv' ? 'text/csv;charset=utf-8;' : 'application/json;charset=utf-8;';
+    
+    // Le nom du fichier inclut désormais la date ou la période pour plus de clarté
+    const timeSuffix = colorMode === 'daily' ? (dynamicTelemetry?.date || 'jour') : `${apiStartDate}_au_${apiEndDate}`;
+    const filename = `thermomaris_export_${timeSuffix}.${format}`;
 
-    const blob = new Blob([content], { type: mimeType });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', filename);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', filename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
 
   const activeFiltersCount = (selectedBasin !== 'Tous' ? 1 : 0) + (selectedTrend !== 'Tous' ? 1 : 0);
 
@@ -2155,31 +2174,101 @@ const filteredSpecies = useMemo(() => {
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
               
-              {/* COLONNE GAUCHE : EXPORT ET METADATA */}
-              <div className="lg:col-span-1 space-y-6">
-                <div className="bg-white border border-sky-200 rounded-2xl p-5 shadow-sm">
-                  <h3 className="text-sm font-bold text-slate-900 mb-4 border-b border-slate-100 pb-2">Export Open Data</h3>
-                  <div className="space-y-3">
-                    <button onClick={() => triggerDownload('csv')} className="w-full px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-bold text-xs flex items-center justify-between transition-colors">
-                      <span className="flex items-center gap-2"><FileSpreadsheet className="w-4 h-4" /> Matrice .CSV</span>
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => triggerDownload('json')} className="w-full px-4 py-2.5 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 font-bold text-xs flex items-center justify-between transition-colors">
-                      <span className="flex items-center gap-2"><FileJson className="w-4 h-4" /> Payload .JSON</span>
-                      <Download className="w-3.5 h-3.5" />
-                    </button>
-                    <button onClick={() => setExportPreviewFormat('json')} className="w-full px-4 py-2.5 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-colors">
-                      <Eye className="w-4 h-4" /> Aperçu brut
-                    </button>
-                  </div>
-                  
-                  <div className="mt-6 p-3 rounded-xl bg-sky-50/50 border border-sky-100 text-[10px] text-slate-500">
-                    <strong className="text-sky-900 block mb-1">Source NetCDF4 :</strong>
-                    <code className="text-rose-700 bg-rose-50 px-1 py-0.5 rounded">{NC_FILE_METADATA.source}</code><br/>
-                    Climatologie 1991–2020.
-                  </div>
-                </div>
-              </div>
+            {/* COLONNE GAUCHE : EXPORT ET METADATA */}
+            <div className="lg:col-span-1 space-y-6">
+              <div className="bg-white border border-sky-200 rounded-2xl p-5 shadow-sm space-y-4">
+                <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">Export Open Data</h3>
+                
+                {/* Choix de la période / date directement dans Partager */}
+                <div className="space-y-3 bg-sky-50/70 p-3.5 rounded-xl border border-sky-100">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Mode d'export</span>
+                    <div className="flex bg-white rounded-lg p-0.5 border border-sky-200">
+                      <button 
+                        onClick={() => setColorMode('daily')} 
+                        className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${colorMode === 'daily' ? 'bg-sky-600 text-white' : 'text-slate-600 hover:text-slate-900'}`}
+                      >
+                        Jour J
+                      </button>
+                      <button 
+                        onClick={() => setColorMode('average')} 
+                        className={`px-2.5 py-1 rounded-md text-[10px] font-bold transition-all ${colorMode === 'average' ? 'bg-sky-600 text-white' : 'text-slate-600 hover:text-slate-900'}`}
+                      >
+                        Période
+                      </button>
+                    </div>
+                  </div>
+
+                  {colorMode === 'daily' ? (
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-semibold text-slate-500">Date sélectionnée :</label>
+                      <input 
+                        type="date"
+                        min={apiStartDate}
+                        max={apiEndDate}
+                        value={dynamicTelemetry?.date || ''}
+                        onChange={(e) => {
+                          const idx = timelineRecords.findIndex((r: any) => r.date === e.target.value);
+                          if (idx !== -1) setSelectedRecordIndex(idx);
+                        }}
+                        className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-sky-300 text-sky-900 font-bold text-xs outline-none cursor-pointer"
+                      />
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-1.5">
+                        <div className="flex-1 space-y-1">
+                          <label className="text-[10px] font-semibold text-slate-500">Du :</label>
+                          <input 
+                            type="date" 
+                            value={apiStartDate} 
+                            onChange={(e) => setApiStartDate(e.target.value)} 
+                            className="w-full px-2 py-1 border border-slate-200 rounded-md text-[11px] font-bold text-slate-800 outline-none focus:border-sky-500 cursor-pointer bg-white" 
+                          />
+                        </div>
+                        <div className="flex-1 space-y-1">
+                          <label className="text-[10px] font-semibold text-slate-500">Au :</label>
+                          <input 
+                            type="date" 
+                            value={apiEndDate} 
+                            onChange={(e) => setApiEndDate(e.target.value)} 
+                            className="w-full px-2 py-1 border border-slate-200 rounded-md text-[11px] font-bold text-slate-800 outline-none focus:border-sky-500 cursor-pointer bg-white" 
+                          />
+                        </div>
+                      </div>
+                      <button 
+                        onClick={loadCopernicusData} 
+                        disabled={isFiltering}
+                        className="w-full py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer disabled:opacity-50"
+                      >
+                        {isFiltering ? 'Chargement...' : 'Actualiser les données'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Boutons d'export */}
+                <div className="space-y-2.5">
+                  <button onClick={() => triggerDownload('csv')} className="w-full px-4 py-2.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 font-bold text-xs flex items-center justify-between transition-colors cursor-pointer">
+                    <span className="flex items-center gap-2"><FileSpreadsheet className="w-4 h-4" /> Matrice .CSV</span>
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => triggerDownload('json')} className="w-full px-4 py-2.5 rounded-xl bg-sky-50 text-sky-700 hover:bg-sky-100 border border-sky-200 font-bold text-xs flex items-center justify-between transition-colors cursor-pointer">
+                    <span className="flex items-center gap-2"><FileJson className="w-4 h-4" /> Payload .JSON</span>
+                    <Download className="w-3.5 h-3.5" />
+                  </button>
+                  <button onClick={() => setExportPreviewFormat('json')} className="w-full px-4 py-2.5 rounded-xl bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200 font-bold text-xs flex items-center justify-center gap-2 transition-colors cursor-pointer">
+                    <Eye className="w-4 h-4" /> Aperçu brut
+                  </button>
+                </div>
+                
+                <div className="p-3 rounded-xl bg-sky-50/50 border border-sky-100 text-[10px] text-slate-500">
+                  <strong className="text-sky-900 block mb-1">Source NetCDF4 :</strong>
+                  <code className="text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded">{NC_FILE_METADATA.source}</code><br/>
+                  Climatologie 1991–2020.
+                </div>
+              </div>
+            </div>
 
               {/* COLONNE DROITE : FORUM COMMUNAUTAIRE */}
               <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-0 shadow-sm flex flex-col h-[600px]">
