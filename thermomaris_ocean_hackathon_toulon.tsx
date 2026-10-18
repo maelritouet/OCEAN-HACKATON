@@ -898,6 +898,30 @@ export default function App() {
 
   const selectedSpeciesImages = selectedSpecies ? SPECIES_GALLERY_IMAGES[selectedSpecies.id] : null;
 
+  const [forumInput, setForumInput] = useState('');
+  const [forumMessages, setForumMessages] = useState([
+    {
+      id: 1,
+      author: 'Ifremer_Toulon',
+      initials: 'IF',
+      avatarBg: 'bg-sky-200 text-sky-700',
+      time: 'Il y a 2 heures',
+      badge: '',
+      bubbleStyle: 'bg-white border-slate-200',
+      content: "Le pic est particulièrement sévère. Nos capteurs in-situ COAST-HF relèvent une plongée de la thermocline à -35m. Risque imminent de nécrose pour les gorgones de la zone."
+    },
+    {
+      id: 2,
+      author: 'Noah (Admin)',
+      initials: 'NG',
+      avatarBg: 'bg-amber-200 text-amber-700',
+      time: 'Il y a 45 min',
+      badge: 'Mod',
+      bubbleStyle: 'bg-blue-50 border-blue-100',
+      content: "Merci pour l'alerte ! Les données Copernicus NRT d'aujourd'hui confirment un écart critique au P90. Le JSON a été mis à jour sur l'API."
+    }
+  ]);
+
   useEffect(() => {
     setSpeciesImageIndex(0);
   }, [selectedSpecies?.id]);
@@ -1412,6 +1436,25 @@ const filteredSpecies = useMemo(() => {
       </div>
     );
   }
+
+  const handleSendForumMessage = (e) => {
+    e.preventDefault(); // Empêche le rechargement de la page si on utilise "Entrée"
+    if (!forumInput.trim()) return; // Ne rien faire si le message est vide
+
+    const newMessage = {
+      id: Date.now(),
+      author: 'Vous (Observateur)',
+      initials: 'VO',
+      avatarBg: 'bg-emerald-200 text-emerald-700',
+      time: 'À l\'instant',
+      badge: '',
+      bubbleStyle: 'bg-white border-slate-200',
+      content: forumInput
+    };
+
+    setForumMessages([...forumMessages, newMessage]);
+    setForumInput(''); // Vider le champ après l'envoi
+  };
 
   return (
     <div className="h-screen w-screen bg-sky-50 text-slate-800 font-sans selection:bg-sky-500 selection:text-white flex flex-col overflow-hidden">
@@ -2157,63 +2200,58 @@ const filteredSpecies = useMemo(() => {
                 </div>
               </div>
 
-              {/* COLONNE DROITE : FORUM COMMUNAUTAIRE */}
-              <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-0 shadow-sm flex flex-col h-[600px]">
-                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-2xl">
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <Radio className="w-4 h-4 text-indigo-600" /> Forum d'Analyse Participative
-                  </h3>
-                  <span className="text-[10px] font-bold px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full">3 Observateurs en ligne</span>
-                </div>
-                
-                {/* Fil de discussion */}
-                <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-50/30">
-                  
-                  {/* Message 1 */}
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-sky-200 flex items-center justify-center text-sky-700 font-bold text-xs shrink-0">IF</div>
-                    <div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-xs font-bold text-slate-800">Ifremer_Toulon</span>
-                        <span className="text-[10px] text-slate-400">Il y a 2 heures</span>
-                      </div>
-                      <div className="mt-1 text-xs text-slate-600 bg-white border border-slate-200 p-3 rounded-2xl rounded-tl-none shadow-sm leading-relaxed">
-                        Le pic du {dynamicTelemetry?.date} est particulièrement sévère. Nos capteurs in-situ COAST-HF relèvent une plongée de la thermocline à -35m. Risque imminent de nécrose pour les gorgones de la zone.
-                      </div>
-                    </div>
-                  </div>
+              {/* COLONNE DROITE : FORUM COMMUNAUTAIRE */}
+              <div className="lg:col-span-2 bg-white border border-slate-200 rounded-2xl p-0 shadow-sm flex flex-col h-[600px]">
+                <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50 rounded-t-2xl">
+                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                    <Radio className="w-4 h-4 text-indigo-600" /> Forum d'Analyse Participative
+                  </h3>
+                  <span className="text-[10px] font-bold px-2 py-1 bg-emerald-100 text-emerald-800 rounded-full">3 Observateurs en ligne</span>
+                </div>
+                
+                {/* Fil de discussion Dynamique */}
+                <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-slate-50/30">
+                  {forumMessages.map((msg) => (
+                    <div key={msg.id} className="flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${msg.avatarBg}`}>
+                        {msg.initials}
+                      </div>
+                      <div>
+                        <div className="flex items-baseline gap-2">
+                          <span className="text-xs font-bold text-slate-800">{msg.author}</span>
+                          <span className="text-[10px] text-slate-400">{msg.time}</span>
+                          {msg.badge && (
+                            <span className="text-[9px] px-1.5 bg-blue-100 text-blue-700 rounded uppercase font-bold">{msg.badge}</span>
+                          )}
+                        </div>
+                        <div className={`mt-1 text-xs text-slate-600 border p-3 rounded-2xl rounded-tl-none shadow-sm leading-relaxed ${msg.bubbleStyle}`}>
+                          {msg.content}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
 
-                  {/* Message 2 */}
-                  <div className="flex gap-3">
-                    <div className="w-8 h-8 rounded-full bg-amber-200 flex items-center justify-center text-amber-700 font-bold text-xs shrink-0">NG</div>
-                    <div>
-                      <div className="flex items-baseline gap-2">
-                        <span className="text-xs font-bold text-slate-800">Noah (Admin)</span>
-                        <span className="text-[10px] text-slate-400">Il y a 45 min</span>
-                        <span className="text-[9px] px-1.5 bg-blue-100 text-blue-700 rounded uppercase font-bold">Mod</span>
-                      </div>
-                      <div className="mt-1 text-xs text-slate-600 bg-blue-50 border border-blue-100 p-3 rounded-2xl rounded-tl-none shadow-sm leading-relaxed">
-                        Merci pour l'alerte ! Les données Copernicus NRT d'aujourd'hui (SST: {dynamicTelemetry?.sst?.toFixed(2)}°C) confirment un écart critique au P90. Le JSON a été mis à jour sur l'API.
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-
-                {/* Input Forum */}
-                <div className="p-4 border-t border-slate-100 bg-white rounded-b-2xl">
-                  <div className="flex gap-2">
-                    <input 
-                      type="text" 
-                      placeholder="Partagez une observation ou un relevé terrain..." 
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-indigo-400 focus:bg-white transition-colors"
-                    />
-                    <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-colors shadow-sm">
-                      Envoyer
-                    </button>
-                  </div>
-                </div>
-              </div>
+                {/* Input Forum interactif (Formulaire) */}
+                <form onSubmit={handleSendForumMessage} className="p-4 border-t border-slate-100 bg-white rounded-b-2xl">
+                  <div className="flex gap-2">
+                    <input 
+                      type="text" 
+                      value={forumInput}
+                      onChange={(e) => setForumInput(e.target.value)}
+                      placeholder="Partagez une observation ou un relevé terrain..." 
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs outline-none focus:border-indigo-400 focus:bg-white transition-colors"
+                    />
+                    <button 
+                      type="submit"
+                      disabled={!forumInput.trim()}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-xl text-xs font-bold transition-colors shadow-sm"
+                    >
+                      Envoyer
+                    </button>
+                  </div>
+                </form>
+              </div>
 
             </div>
           </div>
