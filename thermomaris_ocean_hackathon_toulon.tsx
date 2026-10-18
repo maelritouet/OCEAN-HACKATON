@@ -1442,31 +1442,35 @@ const filteredSpecies = useMemo(() => {
           
 
 <nav className="flex items-center bg-sky-100/80 p-1 rounded-xl border border-sky-200/80 shadow-inner">
-            <button
-              onClick={() => { setActiveMode('visualiser'); setIsMuseumPlaying(false); stopSpeech(); }}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all ${
-                activeMode === 'visualiser' ? 'bg-gradient-to-r from-sky-600 to-cyan-600 text-white shadow-sm shadow-sky-600/25' : 'text-slate-600 hover:text-sky-950 hover:bg-white/60'
-              }`}
-            >
-              <Compass className="w-4 h-4" /> <span>1. Visualiser</span>
-            </button>
-            <button
-              onClick={() => { setActiveMode('comprendre'); setShowMuseumDrawer(true); startMuseumSection(MUSEUM_SECTIONS[0]); }}
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all ${
-                activeMode === 'comprendre' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm shadow-orange-500/25' : 'text-slate-600 hover:text-sky-950 hover:bg-white/60'
-              }`}
-            >
-              <BookOpen className="w-4 h-4" /> <span>2. Comprendre</span>
-            </button>
-            <button
-              onClick={() => { setActiveMode('partager'); setIsMuseumPlaying(false); stopSpeech(); }}
-              
-              className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all ${
-                activeMode === 'partager' ? 'bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow-sm shadow-indigo-600/25' : 'text-slate-600 hover:text-sky-950 hover:bg-white/60'
-              }`}
-            >
-              <Share2 className="w-4 h-4" /> <span>3. Partager</span>
-            </button>
+                      <button
+                        onClick={() => { setActiveMode('visualiser'); setIsMuseumPlaying(false); stopSpeech(); setSelectedSpecies(null); }}
+                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all ${
+                          activeMode === 'visualiser' ? 'bg-gradient-to-r from-sky-600 to-cyan-600 text-white shadow-sm shadow-sky-600/25' : 'text-slate-600 hover:text-sky-950 hover:bg-white/60'
+                        }`}
+                      >
+                        <Compass className="w-4 h-4" /> <span>1. Visualiser</span>
+                      </button>
+                      <button
+                        onClick={() => { 
+                          setActiveMode('comprendre'); 
+                          setIsMuseumPlaying(false); 
+                          stopSpeech(); 
+                          setSelectedSpecies(null); 
+                        }}
+                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all ${
+                          activeMode === 'comprendre' ? 'bg-gradient-to-r from-amber-500 to-orange-500 text-white shadow-sm shadow-orange-500/25' : 'text-slate-600 hover:text-sky-950 hover:bg-white/60'
+                        }`}
+                      >
+                        <BookOpen className="w-4 h-4" /> <span>2. Comprendre</span>
+                      </button>
+                      <button
+                        onClick={() => { setActiveMode('partager'); setIsMuseumPlaying(false); stopSpeech(); setSelectedSpecies(null); }}
+                        className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs md:text-sm font-semibold transition-all ${
+                          activeMode === 'partager' ? 'bg-gradient-to-r from-indigo-600 to-sky-600 text-white shadow-sm shadow-indigo-600/25' : 'text-slate-600 hover:text-sky-950 hover:bg-white/60'
+                        }`}
+                      >
+                        <Share2 className="w-4 h-4" /> <span>3. Partager</span>
+                      </button>
           </nav>
 
           <div className="flex items-center gap-2">
