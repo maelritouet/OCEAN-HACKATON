@@ -995,7 +995,10 @@ export default function App() {
       .then((payload: any) => {
         setLivePipeline(payload);
         if (!payload?.records) return;
-        setSelectedRecordIndex(payload.records.length - 1);
+        const targetDate = payload.activeDate || payload.records[payload.records.length - 1].date;
+        const matchedIdx = payload.records.findIndex((r: any) => r.date === targetDate);
+        
+        setSelectedRecordIndex(matchedIdx !== -1 ? matchedIdx : payload.records.length - 1);
         
         const annual = new Map<number, { sum: number; count: number }>();
         payload.records.forEach((record: any) => {
@@ -1024,32 +1027,32 @@ export default function App() {
     loadCopernicusData();
   }, []);
 
-  // LOAD MAP CELLS (NRT RASTER)
-  useEffect(() => {
-    if (!selectedMapDate) return;
-    const controller = new AbortController();
-    const requestDate = selectedMapDate;
-    setLiveCells([]);
-    setIsMapLoading(true);
-    const timer = window.setTimeout(() => {
-      fetch(`/api/map?min_lon=-6.5&max_lon=10.5&min_lat=41&max_lat=51.5&day=${requestDate}`, { signal: controller.signal })
-        .then((response) => (response.ok ? response.json() : Promise.reject(new Error('Live map unavailable'))))
-        .then((payload: any) => {
-          if (payload.source.date !== requestDate) throw new Error('Stale map response');
-          setLiveCells(payload.cells);
-        })
-        .catch((error: Error) => {
-          if (error.name !== 'AbortError' && error.message !== 'Stale map response') setLiveCells([]);
-        })
-        .finally(() => {
-          if (!controller.signal.aborted) setIsMapLoading(false);
-        });
-    }, 800);
-    return () => {
-      window.clearTimeout(timer);
-      controller.abort();
-    };
-  }, [selectedMapDate]);
+// LOAD MAP CELLS (NRT RASTER)
+  useEffect(() => {
+    if (!selectedMapDate) return;
+    const controller = new AbortController();
+    const requestDate = selectedMapDate;
+    setLiveCells([]);
+    setIsMapLoading(true);
+    const timer = window.setTimeout(() => {
+      fetch(`/api/map?min_lon=-6.5&max_lon=10.5&min_lat=41&max_lat=51.5&day=${requestDate}`, { signal: controller.signal })
+        .then((response) => (response.ok ? response.json() : Promise.reject(new Error('Live map unavailable'))))
+        .then((payload: any) => {
+          if (payload.source.date !== requestDate) throw new Error('Stale map response');
+          setLiveCells(payload.cells);
+        })
+        .catch((error: Error) => {
+          if (error.name !== 'AbortError' && error.message !== 'Stale map response') setLiveCells([]);
+        })
+        .finally(() => {
+          if (!controller.signal.aborted) setIsMapLoading(false);
+        });
+    }, 800);
+    return () => {
+      window.clearTimeout(timer);
+      controller.abort();
+    };
+  }, [selectedMapDate]); // <--- Dépendance clé pour actualiser la carte au changement de Jour J
 
   // Audio System
   useEffect(() => {
@@ -1201,119 +1204,171 @@ const filteredSpecies = useMemo(() => {
     };
   }, [activeMode, isMuseumPlaying, museumStepIndex, activeMuseumSection, voiceOverOn]);
 
-const generateCsvContent = () => {
-    const isDaily = colorMode === 'daily';
-    const activeDate = isDaily ? (dynamicTelemetry?.date || selectedMapDate) : null;
-    const periodStr = !isDaily ? `${apiStartDate}_au_${apiEndDate}` : null;
+    const generateCsvContent = () => {
+      const isDaily = colorMode === 'daily';
+      const activeDate = isDaily ? (dynamicTelemetry?.date || selectedMapDate) : 'Période globale';
+      const records = livePipeline?.records || [];
+      const events = livePipeline?.events || [];
 
-    // 1. En-têtes globaux du rapport (similaires au JSON)
-    const metadataHeader = [
-      `# Project: ThermoMaris - Ocean Hackathon`,
-      `# GeneratedAt: ${new Date().toISOString()}`,
-      `# FilterMode: ${colorMode}`,
-      `# SelectedDate: ${activeDate || 'N/A'}`,
-      `# SelectedPeriod: ${periodStr || 'N/A'}`,
-      `# Copernicus_SST_C: ${dynamicTelemetry?.sst ?? 'N/A'}`,
-      `# Copernicus_Climatology_C: ${dynamicTelemetry?.climatology ?? 'N/A'}`,
-      `# Copernicus_Threshold_P90_C: ${dynamicTelemetry?.threshold ?? 'N/A'}`,
-      `# Copernicus_Anomaly_C: ${dynamicTelemetry?.anomaly ?? 'N/A'}`,
-      ``
-    ].join('\n');
+      // 1. SECTION MÉTADONNÉES GLOBALES & TÉLÉMÉTRIE
+      const metadataLines = [
+        `# ============================================================================`,
+        `# PROJET: ThermoMaris - Ocean Hackathon / Copernicus C3S Export`,
+        `# GÉNÉRÉ LE: ${new Date().toISOString()}`,
+        `# MODE DE FILTRE: ${colorMode}`,
+        `# DATE ACTIVE / PÉRIODE: ${activeDate} (${apiStartDate} au${apiEndDate})`,
+        `# SOURCE NetCDF: ${NC_FILE_METADATA.source}`,
+        `# INSTITUTION: ${NC_FILE_METADATA.institution}`,
+        `# CLIMATOLOGIE: ${NC_FILE_METADATA.climatology}`,
+        `# TÉLÉMÉTRIE ACTIVE - SST (°C): ${dynamicTelemetry?.sst ?? 'N/A'}`,
+        `# TÉLÉMÉTRIE ACTIVE - Climatologie (°C): ${dynamicTelemetry?.climatology ?? 'N/A'}`,
+        `# TÉLÉMÉTRIE ACTIVE - Seuil P90 (°C): ${dynamicTelemetry?.threshold ?? 'N/A'}`,
+        `# TÉLÉMÉTRIE ACTIVE - Anomalie (°C): ${dynamicTelemetry?.anomaly ?? 'N/A'}`,
+        `# ============================================================================`,
+        ``
+      ];
 
-    // 2. En-têtes du tableau des espèces
-    const headers = [
-      'ID_Espece',
-      'Nom_Commun',
-      'Nom_Scientifique',
-      'Bassin_Maritime',
-      'Latitude',
-      'Longitude',
-      'Reponse_Canicule',
-      'Seuil_Critique',
-      'SST_Baseline_2015_C',
-      'SST_Observee_Selection_C',
-      'Categorie_Hobday',
-      'Multiplicateur_Intensite'
-    ];
-
-    // 3. Lignes de données pour chaque espèce
-    const rows = SPECIES_DATA.map((sp) => {
-      const currentSst = getDynamicSpeciesSst(sp.coords);
-      const hobdayStatus = getHobdayCategory(
-        currentSst, 
-        dynamicTelemetry?.climatology || 20.0, 
-        dynamicTelemetry?.threshold || 22.0
+      // 2. SECTION 1 : SÉRIE TEMPORELLE / PIPELINE JOURNALIER (RECORDS)
+      const recordsHeader = [
+        `# --- SECTION 1 : SÉRIE TEMPORELLE JOURNALIÈRE (COPERNICUS PIPELINE) ---`,
+        `Record_Type,Date,SST_C,Climatology_C,Threshold_P90_C,Anomaly_C`
+      ];
+      const recordRows = records.map((r: any) => 
+        `RECORD,${r.date},${r.sst},${r.climatology},${r.threshold},${r.anomaly ?? 0}`
       );
 
-      return [
-        sp.id,
-        `"${sp.name}"`,
-        `"${sp.scientificName}"`,
-        `"${sp.basin}"`,
-        sp.coords[0],
-        sp.coords[1],
-        sp.trend === 'decline' ? '- Disparaît / Déclin' : '+ Apparaît / Prolifère',
-        `"${sp.criticalThreshold}"`,
-        sp.baseSst2015,
-        +currentSst.toFixed(2),
-        `"${hobdayStatus.name}"`,
-        hobdayStatus.mult
-      ].join(',');
-    });
+      // 3. SECTION 2 : CANICULES MARINES DÉTECTÉES (EVENTS)
+      const eventsHeader = [
+        ``,
+        `# --- SECTION 2 : ÉVÉNEMENTS DE CANICULES MARINES (HOBDAY) ---`,
+        `Event_Type,Event_ID,Start_Date,Peak_Date,End_Date,Duration_Days,Cumulative_Intensity`
+      ];
+      const eventRows = events.map((ev: any, idx: number) => {
+        const cumInt = ev.cumulativeIntensity ?? ev.cumulative_intensity ?? ev.intensity_cumulative ?? 0;
+        return `EVENT,${ev.id || idx + 1},${ev.start},${ev.peak || ev.start},${ev.end},${ev.durationDays || ev.duration},${typeof cumInt === 'number' ? cumInt.toFixed(2) : cumInt}`;
+      });
 
-    return [metadataHeader, headers.join(','), ...rows].join('\n');
-  };
+      // 4. SECTION 3 : INDICATEURS BIOLOGIQUES & ESPÈCES IMPACTÉES
+      const speciesHeader = [
+        ``,
+        `# --- SECTION 3 : INDICATEURS BIOLOGIQUES & ESPÈCES ---`,
+        `Species_Type,ID_Espece,Nom_Commun,Nom_Scientifique,Bassin,Latitude,Longitude,Tendance,Seuil_Critique,SST_Observee_C,Categorie_Hobday,Multiplicateur_Intensite`
+      ];
+      const speciesRows = SPECIES_DATA.map((sp) => {
+        const currentSst = getDynamicSpeciesSst(sp.coords);
+        const hobdayStatus = getHobdayCategory(
+          currentSst, 
+          dynamicTelemetry?.climatology || 20.0, 
+          dynamicTelemetry?.threshold || 22.0
+        );
+
+        return [
+          `SPECIES`,
+          sp.id,
+          `"${sp.name}"`,
+          `"${sp.scientificName}"`,
+          `"${sp.basin}"`,
+          sp.coords[0],
+          sp.coords[1],
+          `"${sp.trend}"`,
+          `"${sp.criticalThreshold.replace(/"/g, '""')}"`,
+          +currentSst.toFixed(2),
+          `"${hobdayStatus.name}"`,
+          hobdayStatus.mult
+        ].join(',');
+      });
+
+      // Assemblage final de toutes les sections dans le fichier CSV unique
+      return [
+        ...metadataLines,
+        ...recordsHeader,
+        ...recordRows,
+        ...eventsHeader,
+        ...(eventRows.length > 0 ? eventRows : [`EVENT,None,N/A,N/A,N/A,0,0`]),
+        ...speciesHeader,
+        ...speciesRows
+      ].join('\n');
+    };
 
 const generateJsonContent = () => {
-    const payload = {
-      project: 'ThermoMaris - Ocean Hackathon',
-      generatedAt: new Date().toISOString(),
-      filterMode: colorMode,
-      selectedDate: colorMode === 'daily' ? (dynamicTelemetry?.date || selectedMapDate) : null,
-      selectedPeriod: colorMode === 'average' ? { start: apiStartDate, end: apiEndDate } : null,
-      liveCopernicusTelemetry: dynamicTelemetry,
-      liveCopernicusPipeline: livePipeline,
-      speciesIndicators: SPECIES_DATA.map((sp) => {
-        const currentSst = getDynamicSpeciesSst(sp.coords);
-        const hobdayStatus = getHobdayCategory(currentSst, dynamicTelemetry?.climatology || 20.0, dynamicTelemetry?.threshold || 22.0);
-        
-        return {
-          id: sp.id,
-          name: sp.name,
-          scientificName: sp.scientificName,
-          basin: sp.basin,
-          coordinates: { lat: sp.coords[0], lon: sp.coords[1] },
-          responseToMarineHeatwave: sp.trend === 'decline' ? '- Disparaît / Déclin' : '+ Apparaît / Prolifère',
-          criticalThreshold: sp.criticalThreshold,
-          telemetryAtSelection: {
-            sstBaseline2015: sp.baseSst2015,
-            sstObserved: +currentSst.toFixed(2),
-            hobdayCategory: hobdayStatus.name,
-            intensityMultiple: hobdayStatus.mult
-          }
-        };
-      })
-    };
-    return JSON.stringify(payload, null, 2);
+  const activeDate = colorMode === 'daily' ? (dynamicTelemetry?.date || selectedMapDate) : null;
+  
+  // Filtrage strict sur le jour J en mode daily
+  const filteredRecords = colorMode === 'daily' && livePipeline?.records 
+    ? livePipeline.records.filter((r: any) => r.date === activeDate)
+    : (livePipeline?.records || []);
+
+  const filteredEvents = colorMode === 'daily' && livePipeline?.events
+    ? livePipeline.events.filter((ev: any) => activeDate >= ev.start && activeDate <= ev.end)
+    : (livePipeline?.events || []);
+
+  const payload = {
+    project: 'ThermoMaris - Ocean Hackathon',
+    generatedAt: new Date().toISOString(),
+    filterMode: colorMode,
+    selectedDate: activeDate,
+    selectedPeriod: colorMode === 'average' ? { start: apiStartDate, end: apiEndDate } : null,
+    liveCopernicusTelemetry: dynamicTelemetry,
+    liveCopernicusPipeline: {
+      ...livePipeline,
+      records: filteredRecords,
+      events: filteredEvents
+    },
+    speciesIndicators: SPECIES_DATA.map((sp) => {
+      const currentSst = getDynamicSpeciesSst(sp.coords);
+      const hobdayStatus = getHobdayCategory(currentSst, dynamicTelemetry?.climatology || 20.0, dynamicTelemetry?.threshold || 22.0);
+      
+      return {
+        id: sp.id,
+        name: sp.name,
+        scientificName: sp.scientificName,
+        basin: sp.basin,
+        coordinates: { lat: sp.coords[0], lon: sp.coords[1] },
+        responseToMarineHeatwave: sp.trend === 'decline' ? '- Disparaît / Déclin' : '+ Apparaît / Prolifère',
+        criticalThreshold: sp.criticalThreshold,
+        telemetryAtSelection: {
+          date: activeDate,
+          sstBaseline2015: sp.baseSst2015,
+          sstObserved: +currentSst.toFixed(2),
+          hobdayCategory: hobdayStatus.name,
+          intensityMultiple: hobdayStatus.mult
+        }
+      };
+    })
+  };
+  return JSON.stringify(payload, null, 2);
+};
+
+const getDynamicSpeciesSst = (coords: [number, number]) => {
+    // Si on a de vraies cellules live, on cherche la plus proche
+    if (liveCells && liveCells.length > 0) {
+      const [targetLat, targetLon] = coords;
+      let closest = liveCells[0];
+      let minDist = Math.abs(closest.lat - targetLat) + Math.abs(closest.lon - targetLon);
+      for (let i = 1; i < liveCells.length; i++) {
+        const cell = liveCells[i];
+        const dist = Math.abs(cell.lat - targetLat) + Math.abs(cell.lon - targetLon);
+        if (dist < minDist) {
+          minDist = dist;
+          closest = cell;
+        }
+      }
+      return closest.sst;
+    }
+
+    // Fallback dynamique et réaliste basé sur la date sélectionnée ou l'anomalie
+    const baseTemp = spIdToBasePath(coords); // Température de base selon la latitude/région
+    const anomalyAdd = dynamicTelemetry?.anomaly ?? (heatFactor * 3.5);
+    return +(baseTemp + anomalyAdd).toFixed(2);
   };
 
-  const getDynamicSpeciesSst = (coords: [number, number]) => {
-    if (!liveCells || liveCells.length === 0) {
-      return 22.0 + 4.0 * heatFactor;
-    }
-    const [targetLat, targetLon] = coords;
-    let closest = liveCells[0];
-    let minDist = Math.abs(closest.lat - targetLat) + Math.abs(closest.lon - targetLon);
-    for (let i = 1; i < liveCells.length; i++) {
-      const cell = liveCells[i];
-      const dist = Math.abs(cell.lat - targetLat) + Math.abs(cell.lon - targetLon);
-      if (dist < minDist) {
-        minDist = dist;
-        closest = cell;
-      }
-    }
-    return closest.sst;
-  };
+  // Helper pour attribuer une température de base cohérente par région si liveCells est vide
+  const spIdToBasePath = (coords: [number, number]) => {
+    // Méditerranée (~22-24°C de base), Atlantique/Manche (~15-18°C de base)
+    if (coords[0] < 44) return 22.5; // Méditerranée
+    if (coords[0] < 48) return 18.0; // Atlantique Sud / Bretagne
+    return 15.5; // Manche
+  };
 
 const triggerDownload = (format: string) => {
     const content = format === 'csv' ? generateCsvContent() : generateJsonContent();
@@ -2219,7 +2274,7 @@ const triggerDownload = (format: string) => {
               <div className="bg-white border border-sky-200 rounded-2xl p-5 shadow-sm space-y-4">
                 <h3 className="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2">Export Open Data</h3>
                 
-                {/* Choix de la période / date directement dans Partager */}
+{/* Choix de la période / date directement dans Partager */}
                 <div className="space-y-3 bg-sky-50/70 p-3.5 rounded-xl border border-sky-100">
                   <div className="flex items-center justify-between">
                     <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider">Mode d'export</span>
@@ -2240,19 +2295,59 @@ const triggerDownload = (format: string) => {
                   </div>
 
                   {colorMode === 'daily' ? (
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-semibold text-slate-500">Date sélectionnée :</label>
+                    <div className="space-y-2">
+                      <div className="space-y-1">
+                        <label className="text-[10px] font-semibold text-slate-500">Date précise (Jour J) :</label>
                       <input 
                         type="date"
                         min={apiStartDate}
                         max={apiEndDate}
-                        value={dynamicTelemetry?.date || ''}
+                        value={dynamicTelemetry?.date || selectedMapDate || ''}
                         onChange={(e) => {
-                          const idx = timelineRecords.findIndex((r: any) => r.date === e.target.value);
+                          // Permet de synchroniser la modification directement
+                          const targetDate = e.target.value;
+                          const idx = timelineRecords.findIndex((r: any) => r.date === targetDate);
                           if (idx !== -1) setSelectedRecordIndex(idx);
                         }}
+                        id="daily-export-input"
                         className="w-full px-2.5 py-1.5 rounded-lg bg-white border border-sky-300 text-sky-900 font-bold text-xs outline-none cursor-pointer"
                       />
+                      </div>
+                        <button 
+                          type="button"
+                          onClick={() => {
+                            const inputEl = document.getElementById('daily-export-input') as HTMLInputElement;
+                            if (inputEl && inputEl.value) {
+                              const targetDate = inputEl.value;
+                              
+                              // Chercher si la date existe déjà dans les enregistrements chargés
+                              const idx = timelineRecords.findIndex((r: any) => r.date === targetDate);
+                              if (idx !== -1) {
+                                setSelectedRecordIndex(idx);
+                              } else {
+                                // Sinon, ajouter un enregistrement temporaire pour actualiser la télémétrie de ce jour
+                                const newRecord = { 
+                                  date: targetDate, 
+                                  sst: dynamicTelemetry?.sst || 22.0, 
+                                  climatology: dynamicTelemetry?.climatology || 20.0, 
+                                  threshold: dynamicTelemetry?.threshold || 22.0, 
+                                  anomaly: dynamicTelemetry?.anomaly || 0 
+                                };
+                                
+                                setLivePipeline((prev: any) => {
+                                  if (!prev) return prev;
+                                  const updatedRecords = [...(prev.records || []), newRecord].sort((a, b) => a.date.localeCompare(b.date));
+                                  const newIdx = updatedRecords.findIndex((r: any) => r.date === targetDate);
+                                  setSelectedRecordIndex(newIdx !== -1 ? newIdx : 0);
+                                  return { ...prev, records: updatedRecords };
+                                });
+                              }
+                            }
+                          }}
+                          className="w-full py-1.5 bg-sky-600 hover:bg-sky-500 text-white rounded-lg text-xs font-bold shadow-xs transition-all cursor-pointer"
+                        >
+                          Valider la date
+                        </button>
                     </div>
                   ) : (
                     <div className="space-y-2">
@@ -2395,7 +2490,7 @@ const triggerDownload = (format: string) => {
       <div className="shrink-0 z-30 px-4 lg:px-8 py-3 bg-white/95 backdrop-blur-md border-t border-sky-200/90 shadow-sm relative">
         <div className="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-3 min-h-[44px]">
           
-          {/* Mode Journalier : Sélecteur de date unique */}
+{/* Mode Journalier : Sélecteur de date unique */}
           {activeMode === 'visualiser' && colorMode === 'daily' && (
             <div className="flex items-center gap-3 bg-sky-50 px-5 py-1.5 rounded-xl border border-sky-200 shadow-sm">
               <Thermometer className="w-5 h-5 text-rose-600" />
@@ -2406,10 +2501,32 @@ const triggerDownload = (format: string) => {
                 type="date"
                 min={apiStartDate}
                 max={apiEndDate}
-                value={dynamicTelemetry?.date || ''}
+                value={selectedMapDate || ''}
                 onChange={(e) => {
-                  const idx = timelineRecords.findIndex((r: any) => r.date === e.target.value);
-                  if (idx !== -1) setSelectedRecordIndex(idx);
+                  const targetDate = e.target.value;
+                  if (!targetDate) return;
+                  
+                  const idx = timelineRecords.findIndex((r: any) => r.date === targetDate);
+                  if (idx !== -1) {
+                    setSelectedRecordIndex(idx);
+                  } else {
+                    // Si la date n'est pas dans le tableau chargé, on l'ajoute dynamiquement pour forcer le rafraîchissement
+                    const newRecord = { 
+                      date: targetDate, 
+                      sst: dynamicTelemetry?.sst || 22.0, 
+                      climatology: dynamicTelemetry?.climatology || 20.0, 
+                      threshold: dynamicTelemetry?.threshold || 22.0, 
+                      anomaly: dynamicTelemetry?.anomaly || 0 
+                    };
+                    
+                    setLivePipeline((prev: any) => {
+                      if (!prev) return prev;
+                      const updatedRecords = [...(prev.records || []), newRecord].sort((a, b) => a.date.localeCompare(b.date));
+                      const newIdx = updatedRecords.findIndex((r: any) => r.date === targetDate);
+                      setSelectedRecordIndex(newIdx !== -1 ? newIdx : 0);
+                      return { ...prev, records: updatedRecords };
+                    });
+                  }
                 }}
                 className="px-2 py-1 rounded bg-white border border-sky-300 text-sky-900 font-bold text-sm outline-none cursor-pointer"
               />
