@@ -1202,26 +1202,66 @@ const filteredSpecies = useMemo(() => {
   }, [activeMode, isMuseumPlaying, museumStepIndex, activeMuseumSection, voiceOverOn]);
 
 const generateCsvContent = () => {
-    // Si on est en mode journalier, on indique la date exacte, sinon la plage de dates
-    const dateInfo = colorMode === 'daily' ? `Date_Jour: ${dynamicTelemetry?.date || selectedMapDate}` : `Periode: ${apiStartDate} au ${apiEndDate}`;
+    const isDaily = colorMode === 'daily';
+    const activeDate = isDaily ? (dynamicTelemetry?.date || selectedMapDate) : null;
+    const periodStr = !isDaily ? `${apiStartDate}_au_${apiEndDate}` : null;
 
+    // 1. En-têtes globaux du rapport (similaires au JSON)
+    const metadataHeader = [
+      `# Project: ThermoMaris - Ocean Hackathon`,
+      `# GeneratedAt: ${new Date().toISOString()}`,
+      `# FilterMode: ${colorMode}`,
+      `# SelectedDate: ${activeDate || 'N/A'}`,
+      `# SelectedPeriod: ${periodStr || 'N/A'}`,
+      `# Copernicus_SST_C: ${dynamicTelemetry?.sst ?? 'N/A'}`,
+      `# Copernicus_Climatology_C: ${dynamicTelemetry?.climatology ?? 'N/A'}`,
+      `# Copernicus_Threshold_P90_C: ${dynamicTelemetry?.threshold ?? 'N/A'}`,
+      `# Copernicus_Anomaly_C: ${dynamicTelemetry?.anomaly ?? 'N/A'}`,
+      ``
+    ].join('\n');
+
+    // 2. En-têtes du tableau des espèces
     const headers = [
-      'ID_Espece', 'Nom_Commun', 'Nom_Scientifique', 'Bassin_Maritime', 'Zone_Observation',
-      'Latitude', 'Longitude', 'Impact_Canicule', 'Seuil_Thermique_Critique',
-      'SST_2015_C', `SST_Observee_${colorMode === 'daily' ? (dynamicTelemetry?.date || 'Jour') : 'Moyenne_Periode'}_C`
+      'ID_Espece',
+      'Nom_Commun',
+      'Nom_Scientifique',
+      'Bassin_Maritime',
+      'Latitude',
+      'Longitude',
+      'Reponse_Canicule',
+      'Seuil_Critique',
+      'SST_Baseline_2015_C',
+      'SST_Observee_Selection_C',
+      'Categorie_Hobday',
+      'Multiplicateur_Intensite'
     ];
-    
+
+    // 3. Lignes de données pour chaque espèce
     const rows = SPECIES_DATA.map((sp) => {
-      // Récupère la vraie SST dynamique de la cellule la plus proche sur la carte
       const currentSst = getDynamicSpeciesSst(sp.coords);
+      const hobdayStatus = getHobdayCategory(
+        currentSst, 
+        dynamicTelemetry?.climatology || 20.0, 
+        dynamicTelemetry?.threshold || 22.0
+      );
+
       return [
-        sp.id, `"${sp.name}"`, `"${sp.scientificName}"`, `"${sp.basin}"`, `"${sp.locationName}"`,
-        sp.coords[0], sp.coords[1], sp.trend === 'decline' ? 'DECLIN_MORTALITE (-)' : 'PROLIFERATION_EXPANSION (+)',
-        `"${sp.criticalThreshold}"`, sp.baseSst2015, currentSst.toFixed(2)
+        sp.id,
+        `"${sp.name}"`,
+        `"${sp.scientificName}"`,
+        `"${sp.basin}"`,
+        sp.coords[0],
+        sp.coords[1],
+        sp.trend === 'decline' ? '- Disparaît / Déclin' : '+ Apparaît / Prolifère',
+        `"${sp.criticalThreshold}"`,
+        sp.baseSst2015,
+        +currentSst.toFixed(2),
+        `"${hobdayStatus.name}"`,
+        hobdayStatus.mult
       ].join(',');
     });
 
-    return [`# Export ThermoMaris | ${dateInfo}`, headers.join(','), ...rows].join('\n');
+    return [metadataHeader, headers.join(','), ...rows].join('\n');
   };
 
 const generateJsonContent = () => {
